@@ -50,6 +50,7 @@ top:0px;
       var done = false;
       var octx = document.getElementById("overlay").getContext('2d');
       var overlay = document.getElementById("overlay");
+      var boardSize = 19;
       function refreshButtons(){
         if (cStep == 0){
           document.getElementById('undo').disabled = true;
@@ -64,11 +65,12 @@ top:0px;
           document.getElementById('redo').disabled = false;
         }
       }
+
       function paintBoard() {
         flip = true;
-        boardArray = new Array(19);
-        for (var i = 0; i < 19; i++) {
-          boardArray[i] = new Array(19);
+        boardArray = new Array(boardSize);
+        for (var i = 0; i < boardSize; i++) {
+          boardArray[i] = new Array(boardSize);
         }
         moves = new Array();
         cPushArray = new Array();
@@ -100,10 +102,10 @@ top:0px;
         boardCon.fillRect(0,0,width,width);
         boardCon.beginPath();
         boardCon.strokeStyle = 'black';
-        inc = Math.floor(width / 19.4);
-        offset = Math.floor( (width - 18 * inc) / 2 );
+        inc = Math.floor(width / (boardSize + boardSize/47.5));
+        offset = Math.floor( (width - (boardSize - 1) * inc) / 2 );
         boardCon.lineWidth = 2;
-        for (var i = 0; i < 19; i++) {
+        for (var i = 0; i < boardSize; i++) {
           boardCon.moveTo(offset + inc * i, offset);
           boardCon.lineTo(offset + inc * i, height - offset);
           boardCon.moveTo( offset, offset + inc * i);
@@ -111,11 +113,11 @@ top:0px;
         }
         boardCon.stroke();
         boardCon.closePath();
-        var dotOff = offset + 3 * inc;
-        var dotInc = 6 * inc;
-        for (var i = 0 ; i < 9; i++){
-          var x = Math.floor(i / 3);
-          var y = i % 3;
+        var dotOff = offset + (boardSize - 1)/6 * inc;
+        var dotInc = (boardSize - 1)/3 * inc;
+        for (var i = 0 ; i < (boardSize-1)/2; i++){
+          var x = Math.floor(i / ((boardSize-1)/6));
+          var y = i % ((boardSize-1)/6);
           paintBoardDot(boardCon, dotOff + x * dotInc, dotOff + y * dotInc, 'black');
         }
         cPush(-1, -1, null);
@@ -478,7 +480,7 @@ top:0px;
         ;
       }
       function inRange(k){
-        return k >= 0 && k < 19;
+        return k >= 0 && k < boardSize;
       }
       function checkAndJoin(x, y, colour, x1, y1, x2, y2){
 

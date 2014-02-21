@@ -1,0 +1,569 @@
+<html>
+<head><title></title></head>
+<body onload="javascript: paintBoard();">
+<canvas  id="board" onclick="javascript: clickHandler(event);"></canvas>
+<script>
+
+var xBoard = 0;
+var oBoard = 0;
+var begin = false;
+var context;
+var width, height;
+var offset;
+var inc;
+var black = 'black';
+var white = 'white';
+var first = black;
+var moves = new Array();
+var cPushArray = new Array();
+var pieceStack = new Array();
+var cStep = -1;
+var pieceCount = 0;
+var curPiece = -1;
+var boardArray;
+var done = false;
+
+
+function refreshButtons(){
+  if (cStep == 0){
+    document.getElementById('undo').disabled = true;
+  }
+  else{
+    document.getElementById('undo').disabled = false;
+  }
+  if (cStep == cPushArray.length - 1){
+    document.getElementById('redo').disabled = true;
+  }
+  else{
+    document.getElementById('redo').disabled = false;
+  }
+}
+function paintBoard() {
+
+  boardArray = new Array(19);
+  for (var i = 0; i < 19; i++) {
+      boardArray[i] = new Array(19);
+  }
+
+  moves = new Array();
+  cPushArray = new Array();
+  cStep = -1;
+
+
+  var canvas = document.getElementById("board");
+  context = board.getContext('2d');
+  context.globalAlpha = 1;
+  if (canvas.width  < window.innerWidth)
+  {
+      canvas.width  = window.innerWidth;
+  }
+
+  if (canvas.height < window.innerHeight)
+  {
+      canvas.height = window.innerHeight;
+  }
+     
+   width = canvas.height
+   height = canvas.height;
+   
+   context.fillStyle = "#F6CC78";
+   context.fillRect(0,0,width,height);
+   
+
+   context.beginPath();
+   context.strokeStyle = 'black'; 
+   
+
+   inc = Math.floor(width / 19.4);
+   offset = Math.floor( (width - 18 * inc) / 2 );
+   context.lineWidth = 2;
+
+   for (var i = 0; i < 19; i++) {
+     context.moveTo(offset + inc * i, offset);
+     context.lineTo(offset + inc * i, height - offset);
+     context.moveTo( offset, offset + inc * i);
+     context.lineTo(height - offset, offset + inc * i);
+   }
+
+   context.stroke();
+
+   context.closePath();
+  
+   var dotOff = offset + 3 * inc;
+   var dotInc = 6 * inc;
+
+   for (var i = 0 ; i < 9; i++){
+   
+     var x = Math.floor(i / 3);
+     var y = i % 3;
+  
+    paintBoardDot(dotOff + x * dotInc, dotOff + y * dotInc, 'black');
+   }
+
+cPush(-1, -1, null);
+refreshButtons();
+}
+
+function circle(begin, end, dir, colour){
+
+
+   
+  context.beginPath();
+
+   context.strokeStyle = colour; 
+   context.lineWidth   = inc*0.1;
+
+  var rad = inc*0.6;
+  if (dir == "ver"){
+    
+    var top = (begin.y < end.y) ? begin : end;
+    var bottom = (begin.y < end.y) ? end: begin;
+    context.arc(offset + top.x * inc, offset + inc*top.y, rad , 0, Math.PI, true);
+    context.moveTo(offset + inc*bottom.x - rad, offset + inc*bottom.y);
+    context.arc(offset + inc*bottom.x, offset + inc*bottom.y, rad , Math.PI, 0, true);
+
+    context.moveTo(offset + top.x * inc - rad, offset + inc*top.y);
+    context.lineTo(offset + inc*bottom.x - rad, offset + inc*bottom.y);
+    context.moveTo(offset + top.x * inc + rad, offset + inc*top.y);
+    context.lineTo(offset + inc*bottom.x + rad, offset + inc*bottom.y);
+
+  }
+  else if (dir == "hor"){
+    var left = (begin.x < end.x) ? begin : end;
+    var right = (begin.x < end.x) ? end: begin;
+
+    context.arc(offset + inc*left.x, offset + inc*left.y, rad, Math.PI/2, Math.PI*3/2, false);
+    context.moveTo(offset + inc*right.x, offset + inc*right.y + rad);
+    context.arc(offset + inc*right.x, offset + inc*right.y, rad, Math.PI/2, Math.PI*3/2, true);
+
+    context.moveTo(offset + inc*left.x, offset + inc*left.y - rad);
+    context.lineTo(offset + inc*right.x, offset + inc*right.y - rad);
+    context.moveTo(offset + inc*left.x, offset + inc*left.y + rad);
+    context.lineTo(offset + inc*right.x, offset + inc*right.y + rad);
+
+
+  }
+
+   context.stroke();
+   context.closePath();
+}
+function circleWinner(x, y, colour){
+  done = true;
+  //alert(colour+" won!");
+  context.strokeStyle = colour;
+  var dirs = ["up", "down", "hor", "ver"];
+
+  for (var i = dirs.length - 1; i >= 0; i--) {
+
+    curDir = boardArray[x][y][dirs[i]];
+
+    if (curDir.length >= 5){
+      
+      circle(curDir.begin, curDir.end, dirs[i], colour);
+
+    }
+  };
+
+
+}
+
+function paintBoardDot(x, y, colour){
+   context.beginPath();
+
+   context.strokeStyle = colour; 
+   context.lineWidth   = inc*0.01;
+
+   context.arc(x, y, inc*0.15 , 0, Math.PI * 2, true);
+
+   context.stroke();
+   context.fillStyle = colour;
+   context.fill();
+   context.closePath();
+}
+function cPush(x, y, colour) {
+    cStep++;
+    if (cStep < cPushArray.length) { cPushArray.length = cStep; }
+    cPushArray.push(document.getElementById('board').toDataURL());
+    if (pieceCount >= 0){
+      pieceStack.push({'x':x, 'y':y, 'colour': colour});
+      curPiece++;
+      
+      //alert("pushed " + colour); 
+    }
+    
+
+
+}
+function placePiece(x, y, colour){
+  
+  boardArray[x][y] = {};
+  cur = boardArray[x][y];
+  cur["up"] = {
+        'colour': colour, 'length': 1, 'begin' : {'x' : x, 'y' : y}, 'end' : {'x' : x, 'y' : y}
+       };
+  cur["down"] = {
+        'colour': colour, 'length': 1, 'begin' : {'x' : x, 'y' : y}, 'end' : {'x' : x, 'y' : y}
+       };
+  cur["hor"] = {
+        'colour': colour, 'length': 1, 'begin' : {'x' : x, 'y' : y}, 'end' : {'x' : x, 'y' : y}
+       };
+  cur["ver"] = {
+        'colour': colour, 'length': 1, 'begin' : {'x' : x, 'y' : y}, 'end' : {'x' : x, 'y' : y}
+       };
+
+  var res = "";  
+  res = res + checkAndJoin(x, y, colour, x-1, y-1, x+1, y+1);
+  res = res + checkAndJoin(x, y, colour, x-1, y, x+1, y);
+  res = res + checkAndJoin(x, y, colour, x-1, y+1, x+1, y-1);
+  res = res + checkAndJoin(x, y, colour, x, y-1, x, y+1);
+
+ //if (res != "") alert(res);
+
+  checkWin(x, y, colour);
+  
+}
+
+function checkAndSever(x, y, colour, x1, y1, x2, y2){
+
+  var type;
+  if (x1 < x2 && y1 < y2) type = 'down';
+  if (x1 < x2 && y1 > y2) type = 'up';
+  if (y1 == y2) type = 'hor';
+  if (x1 == x2) type = 'ver';
+var a; var b;
+   if (type == 'down'){
+      a = 1;
+      b = 1;
+  }
+  else if (type == 'up'){
+   
+      a = 1;
+      b = -1;
+    
+  }
+  else if (type == 'hor'){
+   
+      a = 1;
+      b = 0;
+    
+  }
+  else{
+   
+      a = 0;
+      b = 1;
+    
+  }
+  
+  var fore = boardArray[x2][y2];
+  var aft = boardArray[x1][y1];
+  var newlen = 0;
+
+  if (fore != undefined && aft != undefined) {
+    if (fore[type].colour == colour && aft[type].colour == colour){
+        newforelen = Math.max(Math.abs(x-fore[type].end.x), Math.abs(y-fore[type].end.y));
+        newaftlen = Math.max(Math.abs(x-aft[type].begin.x), Math.abs(y-aft[type].begin.y));
+        
+        alert(newforelen);
+        alert(newaftlen);
+        markRest(x,y, x1, y1, newforelen, newforelen, type, {'x' : x+a, 'y' : y+b}, fore[type].end);
+        markRest(x,y, x2, y2, newaftlen, newaftlen, type, aft[type].begin, {'x' : x-a, 'y' : y-b});
+
+       //  alert("forelen: "+newforelen);
+       // alert("aftlen: "+newaftlen);
+       // alert("aftend: " + aft[type].end.x + "," + aft[type].end.y);
+       // alert("aftstart: " + aft[type].begin.x + "," + aft[type].begin.y);
+       // alert("foreend: " + fore[type].end.x + "," + fore[type].end.y);
+       // alert("forestart: " + fore[type].begin.x + "," + fore[type].begin.y);
+       return;
+    }
+  }
+  if (fore != undefined && fore[type].colour == colour){
+     newforelen = Math.max(Math.abs(x-fore[type].end.x), Math.abs(y-fore[type].end.y));
+    markRest(x,y, x1, y1, newforelen, newforelen, type, {'x' : x+a, 'y' : y+b}, fore[type].end);
+  //   alert("forelen: "+newforelen);
+    return;
+      
+  }
+  if (aft != undefined && aft[type].colour == colour){
+
+    newaftlen = Math.max(Math.abs(x-aft[type].begin.x), Math.abs(y-aft[type].begin.y));
+   
+    markRest(x,y, x2, y2, newaftlen, newaftlen, type, aft[type].begin, {'x' : x-a, 'y' : y-b});
+    // alert("aftlen: "+newaftlen);
+     return;
+  }
+
+}
+
+function unplace(x, y, colour){
+ // alert("unsetting"+ x + "," + y);
+  boardArray[x][y] = undefined;
+
+  checkAndSever(x, y, colour, x-1, y-1, x+1, y+1);
+ // alert("1");
+  checkAndSever(x, y, colour, x-1, y, x+1, y);
+  //alert("2");
+  checkAndSever(x, y, colour, x-1, y+1, x+1, y-1);
+ // alert("3");
+  checkAndSever(x, y, colour, x, y-1, x, y+1);
+ // alert("4");
+
+ 
+}
+
+function Undo() {
+  document.getElementById('undo').disabled = true;
+    if (cStep > 0) {
+        cStep--;
+    //    alert(curPiece);
+        var x = pieceStack[curPiece].x;
+        var y = pieceStack[curPiece].y;
+        var c = pieceStack[curPiece].colour;
+     //   alert(c);
+        // alert("unplacing " + c);
+        
+
+        unplace(x, y, c);
+        flip = !flip;
+        
+       
+        var canvasPic = new Image();
+        canvasPic.src = cPushArray[cStep];
+        canvasPic.onload = function () { context.drawImage(canvasPic, 0, 0); }
+        
+        curPiece--;
+
+        
+    }
+    refreshButtons();
+}
+function Redo() {
+  document.getElementById('undo').disabled = true;
+    if (cStep < cPushArray.length-1) {
+        cStep++;
+        curPiece++;
+        
+        var x = pieceStack[curPiece].x;
+        var y = pieceStack[curPiece].y;
+        var c = pieceStack[curPiece].colour;
+        
+        
+        placePiece(x, y, c);
+        flip = !flip;
+
+        var canvasPic = new Image();
+        canvasPic.src = cPushArray[cStep];
+        canvasPic.onload = function () { context.drawImage(canvasPic, 0, 0); }
+        
+
+
+    }
+    refreshButtons();
+}
+function paintPiece(x, y, colour){
+   context.beginPath();
+
+   context.strokeStyle = colour; 
+   context.lineWidth   = 3;
+
+   context.arc(x, y, inc*0.4 , 0, Math.PI * 2, true);
+
+   context.stroke();
+   context.fillStyle = colour;
+   context.fill();
+   context.closePath();
+
+}
+
+function pushAndRefresh(x, y, colour){
+
+   cPush(x, y, colour);
+   refreshButtons();
+}
+
+var flip = true;
+
+function markRest(x0, y0, x1, y1, rowlen,len, type, begin, end){
+  var dir;
+  var a;
+  var b;
+  if (type == 'down'){
+    if (x0 > x1){
+      a = -1;
+      b = -1;
+    }
+    else{
+      a = 1;
+      b = 1;
+    }
+  }
+  else if (type == 'up'){
+    if (x0 > x1){
+      a = -1;
+      b = 1;
+    }
+    else{
+      a = 1;
+      b = -1;
+    }
+  }
+  else if (type == 'hor'){
+    if (x0 > x1){
+      a = -1;
+      b = 0;
+    }
+    else{
+      a = 1;
+      b = 0;
+    }
+  }
+  else{
+    if (y0 > y1){
+      a = 0;
+      b = -1;
+    }
+    else{
+      a = 0;
+      b = 1;
+    }
+  }
+  
+    
+      for (var i = 0; i < rowlen; i++) {
+        var c = boardArray[x1+a*i][y1+b*i][type];
+       // alert(c);
+       // alert(x1+a*i ) ;
+       // alert(y1+b*i);
+        c.length = len;
+
+        c.begin = begin;
+        c.end = end;
+      };
+    
+}
+
+function checkAndJoin(x, y, colour, x1, y1, x2, y2){
+
+  var type;
+  if (x1 < x2 && y1 < y2) type = 'down';
+  if (x1 < x2 && y1 > y2) type = 'up';
+  if (y1 == y2) type = 'hor';
+  if (x1 == x2) type = 'ver';
+  
+  var cur = boardArray[x][y];
+  var fore = boardArray[x1][y1];
+  var aft = boardArray[x2][y2];
+  var newlen = 0;
+
+  if (fore != undefined && aft != undefined) {
+    if (fore[type].colour == colour && aft[type].colour == colour){
+    
+        newlen = fore[type].length + aft[type].length + 1;
+        cur[type].begin.x = fore[type].begin.x;
+        cur[type].end.x = aft[type].end.x;
+        cur[type].begin.y = fore[type].begin.y;
+        cur[type].end.y = aft[type].end.y;
+        cur[type].length = newlen;
+        markRest(x,y, x1, y1, fore[type].length, newlen, type, cur[type].begin, cur[type].end);
+        markRest(x,y, x2, y2, aft[type].length, newlen, type, cur[type].begin, cur[type].end);
+        
+
+        // fore[type].end.x = cur[type].end.x;
+        // aft[type].begin.x = cur[type].begin.x;
+
+        
+        // fore[type].end.y = cur[type].end.y;
+        // aft[type].begin.y = cur[type].begin.y;
+        return (newlen + " " + type);
+    }
+  }
+  if (fore != undefined && fore[type].colour == colour){
+    newlen = fore[type].length + 1;
+    cur[type].begin.x = fore[type].begin.x;
+    cur[type].begin.y = fore[type].begin.y;
+    cur[type].length = newlen;
+    markRest(x,y, x1, y1, fore[type].length, newlen, type, cur[type].begin, cur[type].end);
+    
+
+    
+    return (newlen + " " + type);
+  }
+  if (aft != undefined && aft[type].colour == colour){
+    newlen = aft[type].length + 1;
+    cur[type].end.x = aft[type].end.x;
+    cur[type].end.y = aft[type].end.y;
+    cur[type].length = newlen;
+    markRest(x,y, x2, y2, aft[type].length, newlen, type, cur[type].begin, cur[type].end);
+    
+
+    return (newlen + " " + type);
+  }
+
+  //alert(type + (fore != undefined) + fore[type].colour + colour);
+
+  
+
+  return "";
+
+}
+
+
+
+function checkWin(x, y, colour){
+  if (boardArray[x][y]["up"].length >= 5 ||
+      boardArray[x][y]["down"].length >= 5 || 
+      boardArray[x][y]["hor"].length >= 5 ||
+      boardArray[x][y]["ver"].length >= 5 ){
+     //alert(colour + " wins!");
+   circleWinner(x, y, colour);
+   // paintBoard();
+  }
+}
+
+function clickHandler(e) {
+  if (done) {
+    paintBoard();
+    done = false;
+    return;
+  }
+
+  if (curPiece < pieceCount && curPiece > -1){
+    //alert("purge: " + "curpiece: " + curPiece + " pieceCount: " + pieceCount);
+    for (var i = 0; i < pieceCount-curPiece; i++){
+      pieceStack.pop();
+      
+    }
+    pieceCount = curPiece;
+  }
+    var dsocleft=document.all? iebody.scrollLeft : pageXOffset
+    var dsoctop=document.all? iebody.scrollTop : pageYOffset
+    var y = Math.round((e.clientY + dsoctop - offset)/inc);    
+    var x =  Math.round((e.clientX + dsocleft - offset)/inc); 
+    var paintX = x*inc + offset;
+    var paintY = y*inc + offset;
+    if (paintX > width || paintY > width) return;
+
+    if (boardArray[x][y] != undefined) return;
+    var c;
+    if (flip){
+    c = first;
+    }
+    else{
+      c = (first == black) ? white: black;
+    }
+
+    flip = !flip;
+    paintPiece(paintX, paintY, c);
+    placePiece(x, y, c);
+    pushAndRefresh(x, y, c);
+    pieceCount++;
+    //alert("piececount is " + pieceCount);
+
+ }
+
+
+</script>
+<input id="undo" type="button" value="undo" onclick="Undo();" />
+<input id="redo" type="button" value="redo" onclick="Redo();" />
+</body>
+</html>

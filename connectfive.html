@@ -132,10 +132,14 @@ function initialize(){
 
         boardCon.fillStyle = "#F6CC78";
         //boardCon.fillRect(0,0,canvas.width,canvas.height);
-
-         inc = Math.floor(boardwidth / (boardSize + boardSize/47.5));
+        var tweak = 10;
+        
+         inc = Math.floor(boardheight / (((boardSize-1) + (boardSize-1)/tweak)));
+         
          offset = Math.floor( (boardwidth - (boardSize - 1) * inc) / 2 );
-        boardCon.fillRect(translation - inc*0.4 + offset,0.4*inc,boardwidth - offset,boardwidth - offset);
+
+         var magic = offset*0.4;
+        boardCon.fillRect(translation + magic, magic, boardwidth - 2*magic,boardwidth - 2*magic);
        
         boardCon.beginPath();
         boardCon.strokeStyle = 'black';
@@ -271,16 +275,29 @@ function initialize(){
       }
       function pushMemBoard(x,y, colour){
         if (pieceCount >= 0){
+        	if (curPiece < pieceCount && curPiece > -1){
+        	  for (var i = 0; i < pieceCount-curPiece; i++) pieceStack.pop();
+           
+         	 pieceCount = curPiece;
+    	  }
+
           pieceStack.push({'x':x, 'y':y, 'colour': colour}
                          );
           curPiece++;
-          //alert("pushed " + colour); 
+
+
+          
         }
       }
       function printPush(x, y, colour) {
         printStep++;
         if (printStep < printStack.length) {
-          printStack.length = printStep;
+        	var len = printStack.length;
+        	for (var i = 0; i < len-printStep; i++){
+        	 printStack.pop();
+
+        	}
+
         }
         printStack.push(document.getElementById('pieces').toDataURL());
       
@@ -356,8 +373,8 @@ function initialize(){
           a = 0;
           b = 1;
         }
-        var fore = boardArray[x2][y2];
-        var aft = boardArray[x1][y1];
+        var fore = (inRange(x2) && inRange(y2)) ? boardArray[x2][y2] : undefined;
+        var aft = (inRange(x1) && inRange(y1)) ? boardArray[x1][y1] : undefined;
         var newlen = 0;
         if (fore != undefined && aft != undefined) {
           if (fore[type].colour == colour && aft[type].colour == colour){
@@ -393,6 +410,10 @@ function initialize(){
           var x = pieceStack[curPiece].x;
           var y = pieceStack[curPiece].y;
           var c = pieceStack[curPiece].colour;
+          curPiece--;
+         // alert(curPiece + " " + printStep);
+
+          
           //   alert(c);
            
           unplace(x, y, c);
@@ -404,10 +425,9 @@ function initialize(){
           canvasPic.onload = function () {
           	myctx.clearRect(0, 0, overlay.width, overlay.height);
             myctx.drawImage(canvasPic, 0, 0);
-            //alert("popped");
 
           }
-            curPiece--;
+            
         }
         refreshButtons();
       }
@@ -428,6 +448,7 @@ function initialize(){
           }
         }
         refreshButtons();
+        
       }
       function paintPiece(ctx, x, y, colour, solid){
         ctx.beginPath();
@@ -587,12 +608,7 @@ function initialize(){
           
         if (paintX > boardwidth + translation || paintY > boardwidth) return;
 
-          if (curPiece < pieceCount && curPiece > -1){
-        	  for (var i = 0; i < pieceCount-curPiece; i++) pieceStack.pop();
-           
-         	 pieceCount = curPiece;
-    	  }
-
+          
         if (done) {
           // paintBoard();
           // done = false;

@@ -4,7 +4,7 @@
     <title>
     </title>
   </head>
-  <body bgcolor="#000000" onload="javascript: paintBoard();">
+  <body bgcolor="#000000" onload="javascript: startHere();">
     <canvas id="board" 
     style="z-index: 1;
 position:absolute;
@@ -52,6 +52,11 @@ top:0px;
       var overlay = document.getElementById("overlay");
       var boardSize = 19;
       var translation;
+      var randArray;
+      var randCount;
+      var allRandom = false;
+      
+      var winner;
       function refreshButtons(){
         if (printStep == 0){
           document.getElementById('undo').disabled = true;
@@ -74,6 +79,8 @@ top:0px;
 
 
 function initialize(){
+	
+	randCount = 0;
 	  xBoard = 0;
       oBoard = 0;
       begin = false;
@@ -84,6 +91,14 @@ function initialize(){
       moves = new Array();
       printStack = new Array();
       pieceStack = new Array();
+      
+
+      boardSize = 19;
+      randArray = new Array(boardSize*boardSize);
+      for (var i = randArray.length - 1; i >= 0; i--) {
+      	randArray[i] = [Math.floor(i/boardSize), i%boardSize];
+      };
+
       printStep = -1;
       pieceCount = 0;
       curPiece = -1;
@@ -91,10 +106,10 @@ function initialize(){
       done = false;
       octx = document.getElementById("overlay").getContext('2d');
       overlay = document.getElementById("overlay");
-      boardSize = 19;
+      
       
 }
-      function paintBoard() {
+      function startHere() {
       	initialize();
         flip = true;
         boardArray = new Array(boardSize);
@@ -159,13 +174,42 @@ function initialize(){
         for (var i = 0 ; i < (boardSize-1)/2; i++){
           var x = Math.floor(i / ((boardSize-1)/6));
           var y = i % ((boardSize-1)/6);
-          paintBoardDot(boardCon, translation+dotOff + x * dotInc, dotOff + y * dotInc, 'black');
+          startHereDot(boardCon, translation+dotOff + x * dotInc, dotOff + y * dotInc, 'black');
         }
 
         printPush(-1, -1, null);
         pushMemBoard(-1, -1, null);
         refreshButtons();
 
+        if (allRandom) beginRandomPlay();
+      }
+
+      function beginRandomPlay(){
+      	while (!done && curPiece < boardSize*boardSize - 1){
+      		        var c;
+	        if (flip){
+	          c = first;
+	        }
+	        else{
+	          c = (first == black) ? white: black;
+	        }
+	        flip = !flip;
+	        
+	        randomPlay(c);
+      	}
+      	
+
+
+
+      	if (curPiece == boardSize*boardSize - 1){
+      		alert("draw!");
+      	}
+      	else if (done){
+      		alert(winner + " won in " + curPiece + " random moves");
+      	}
+      	else{
+
+      	}
       }
       function stroke(begin, end, dir, colour){
         var first;
@@ -248,7 +292,7 @@ function initialize(){
         }
         ;
       }
-      function paintBoardDot(boardCon, x, y, colour){
+      function startHereDot(boardCon, x, y, colour){
         boardCon.beginPath();
         boardCon.strokeStyle = colour;
         boardCon.lineWidth   = inc*0.01;
@@ -594,36 +638,26 @@ function initialize(){
             boardArray[x][y]["ver"].length >= 5 ){
           //alert(colour + " wins!");
           circleWinner(pieceContext, x, y, colour);
-          // paintBoard();
+          done = true;
+          winner = colour;
+          // startHere();
         }
       }
-      function clickHandler(e) {
-     
-        var dsocleft=document.all? iebody.scrollLeft : pageXOffset
-        var dsoctop=document.all? iebody.scrollTop : pageYOffset
-        var y = Math.round((e.clientY + dsoctop - offset)/inc);
-        var x =  Math.round((e.clientX + dsocleft - offset - translation)/inc);
-        var paintX = x*inc + offset + translation;
+      function play(x, y, c){
+      	var paintX = x*inc + offset + translation;
         var paintY = y*inc + offset;
           
         if (paintX > boardwidth + translation || paintY > boardwidth) return;
 
           
         if (done) {
-          // paintBoard();
+          // startHere();
           // done = false;
           return;
         }
         if (boardArray[x][y] != undefined) return;
 
-        var c;
-        if (flip){
-          c = first;
-        }
-        else{
-          c = (first == black) ? white: black;
-        }
-        flip = !flip;
+        
         paintPiece(pieceContext, paintX, paintY, c, true, false);
 
         placePiece(x, y, c);
@@ -634,6 +668,44 @@ function initialize(){
         pushAndRefresh(x, y, c);
         pieceCount++;
         //alert("piececount is " + pieceCount);
+      }
+      function clickHandler(e) {
+     	
+        var dsocleft=document.all? iebody.scrollLeft : pageXOffset
+        var dsoctop=document.all? iebody.scrollTop : pageYOffset
+        var y = Math.round((e.clientY + dsoctop - offset)/inc);
+        var x =  Math.round((e.clientX + dsocleft - offset - translation)/inc);
+        
+        var c;
+        if (flip){
+          c = first;
+        }
+        else{
+          c = (first == black) ? white: black;
+        }
+        flip = !flip;
+        
+        play(x, y, c);
+
+       
+        
+      }
+      function invokeRandom(){
+      	allRandom = true;
+      	startHere();
+      	allRandom = false;
+      }
+      function randomPlay(c){
+      	var k = Math.floor((Math.random()*(boardSize*boardSize-randCount + 1))) + randCount;
+
+
+        var tmp = randArray[k];
+        randArray[k] = randArray[randCount];
+        randArray[randCount] = tmp;
+        
+
+        play(randArray[randCount][0], randArray[randCount][1], c);
+        randCount++;
       }
       window.onmousemove = handleMouseMove;
 
@@ -670,9 +742,14 @@ function initialize(){
       }
     </script>
     <input id="undo" style="z-index:10;position:relative;" type="button" value="undo" onclick="undo(pieceContext);" />
+    <input id="redo" style="z-index:10;position:relative;" type="button" value="redo" onclick="redo(pieceContext);" />
+    <br>
     <input id="undoAll" style="z-index:10;position:relative;" type="button" value="undoAll" onclick="undoAll(pieceContext);" />
     <input id="redoAll" style="z-index:10;position:relative;" type="button" value="redoAll" onclick="redoAll(pieceContext);" />
-    <input id="redo" style="z-index:10;position:relative;" type="button" value="redo" onclick="redo(pieceContext);" />
-    <input id="reset" style="z-index:10;position:relative;" type="button" value="reset" onclick="paintBoard();" />
+    <br>
+    <input id="reset" style="z-index:10;position:relative;" type="button" value="reset" onclick="startHere();" />
+    <br>
+    <br>
+    <input id="random" style="z-index:10;position:relative;" type="button" value="random" onclick="invokeRandom();" />
   </body>
 </html>

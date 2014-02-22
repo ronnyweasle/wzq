@@ -510,6 +510,7 @@ function initialize(){
           ctx.fill();
         }
         ctx.closePath();
+        octx.clearRect(0, 0, overlay.width, overlay.height);
       }
       function paintOverlay(octx, ox, oy, x, y, colour){
         octx.clearRect(0, 0, overlay.width, overlay.height);

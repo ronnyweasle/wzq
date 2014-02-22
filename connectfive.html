@@ -4,7 +4,7 @@
     <title>
     </title>
   </head>
-  <body bgcolor="#000000" onload="javascript: startHere();">
+  <body bgcolor='black' onload="javascript: startHere();">
     <canvas id="board" 
     style="z-index: 1;
 position:absolute;
@@ -33,6 +33,7 @@ top:0px;
       var xBoard = 0;
       var oBoard = 0;
       var begin = false;
+      var boardContext;
       var pieceContext;
       var boardwidth, boardheight;
       var offset;
@@ -48,17 +49,17 @@ top:0px;
       var curPiece = -1;
       var boardArray;
       var done = false;
-      var octx = document.getElementById("overlay").getContext('2d');
+      var overlayContext = document.getElementById("overlay").getContext('2d');
       var overlay = document.getElementById("overlay");
       var boardSize = 19;
       var translation;
       var randArray;
       var randCount;
       var allRandom = false;
-      
       var winner;
+      var initialWidth;
       function refreshButtons(){
-        if (printStep == 0){
+        if (curPiece == 0){
           document.getElementById('undo').disabled = true;
           document.getElementById('undoAll').disabled = true;
         }
@@ -66,7 +67,7 @@ top:0px;
           document.getElementById('undo').disabled = false;
           document.getElementById('undoAll').disabled = false;
         }
-        if (printStep == printStack.length - 1){
+        if (curPiece == pieceStack.length - 1){
           document.getElementById('redo').disabled = true;
           document.getElementById('redoAll').disabled = true;
         }
@@ -75,142 +76,183 @@ top:0px;
           document.getElementById('redoAll').disabled = false;
         }
       }
-
-
-
 function initialize(){
-	
 	randCount = 0;
 	  xBoard = 0;
       oBoard = 0;
       begin = false;
-    
       black = 'black';
       white = 'white';
       first = black;
       moves = new Array();
-      printStack = new Array();
+     // printStack = new Array();
       pieceStack = new Array();
       
-
-      boardSize = 19;
       randArray = new Array(boardSize*boardSize);
-      for (var i = randArray.length - 1; i >= 0; i--) {
+      for (var i = boardSize*boardSize - 1; i >= 0; i--) {
       	randArray[i] = [Math.floor(i/boardSize), i%boardSize];
       };
-
-      printStep = -1;
+     // printStep = -1;
       pieceCount = 0;
       curPiece = -1;
       boardArray;
       done = false;
-      octx = document.getElementById("overlay").getContext('2d');
+      overlayContext = document.getElementById("overlay").getContext('2d');
       overlay = document.getElementById("overlay");
-      
-      
+
+      var canvas = document.getElementById("pieces");
+        var boardcanvas = document.getElementById("board");
+                canvas.width  = window.innerWidth;
+        
+       
+          canvas.height = window.innerHeight;
+        pieceContext = canvas.getContext('2d');
+        pieceContext.clearRect(0, 0, canvas.width,canvas.height);
+        boardContext = boardcanvas.getContext('2d');
+        pieceContext.globalAlpha = 1;
+
+
 }
-      function startHere() {
-      	initialize();
+
+ function drawBoard(){
+ 	var canvas = document.getElementById("pieces");
+        var boardcanvas = document.getElementById("board");
+      
+        boardContext = boardcanvas.getContext('2d');
+        
+        w = window.innerWidth;
+        h = window.innerHeight;
+          
+        canvas.height = h;
+        canvas.width = w;
+        boardwidth = Math.min(h, w);
+        boardheight = boardwidth;
+        overlay.height = h;
+        overlay.width = w;
+        boardcanvas.width = w;
+        boardcanvas.height = h;
+        translation = (w - boardwidth)/2;
+        boardContext.fillStyle = "#F6CC78";
+        //boardContext.fillRect(0,0,canvas.width,canvas.height);
+        var tweak = 10;
+         inc = Math.floor(boardheight / (((boardSize-1) + (boardSize-1)/tweak)));
+         offset = Math.floor( (boardwidth - (boardSize - 1) * inc) / 2 );
+         var magic = offset*0.4;
+        boardContext.fillRect(translation + magic, magic, boardwidth - 2*magic,boardwidth - 2*magic);
+        boardContext.beginPath();
+        boardContext.strokeStyle = 'black';
+        boardContext.lineWidth = 2;
+        for (var i = 0; i < boardSize; i++) {
+          boardContext.moveTo(translation+offset + inc * i, offset);
+          boardContext.lineTo(translation+offset + inc * i, boardheight - offset);
+          boardContext.moveTo(translation+offset, offset + inc * i);
+          boardContext.lineTo(translation+boardheight - offset, offset + inc * i);
+        }
+        boardContext.stroke();
+        boardContext.closePath();
+        var dotOff = offset + (boardSize - 1)/6 * inc;
+        var dotInc = (boardSize - 1)/3 * inc;
+        for (var i = 0 ; i < (boardSize-1)/2; i++){
+          var x = Math.floor(i / ((boardSize-1)/6));
+          var y = i % ((boardSize-1)/6);
+          startHereDot(boardContext, translation+dotOff + x * dotInc, dotOff + y * dotInc, 'black');
+        }
+        
+ }
+	function initialDraw(){
+
+		initialWidth = window.innerWidth;
+		initialize();
         flip = true;
         boardArray = new Array(boardSize);
         for (var i = 0; i < boardSize; i++) {
           boardArray[i] = new Array(boardSize);
         }
         moves = new Array();
-        printStack = new Array();
-        printStep = -1;
-        var canvas = document.getElementById("pieces");
-        var boardcanvas = document.getElementById("board");
-        pieceContext = canvas.getContext('2d');
-        pieceContext.clearRect(0, 0, canvas.width,canvas.height);
-        boardCon = boardcanvas.getContext('2d');
-        pieceContext.globalAlpha = 1;
-        if (canvas.width  < window.innerWidth)
-        {
-          canvas.width  = window.innerWidth;
-         
-        }
-        if (canvas.height < window.innerHeight)
-        {
-          canvas.height = window.innerHeight;
-         
-        }
-        boardwidth = Math.min(canvas.height, canvas.width);
-        boardheight = boardwidth;
-        overlay.height = canvas.height;
-        overlay.width = canvas.width;
-        boardcanvas.width = canvas.width;
-        boardcanvas.height = canvas.height;
+       // printStack = new Array();
+       // printStep = -1;
 
-
-        translation = (canvas.width - boardwidth)/2;
-
-        boardCon.fillStyle = "#F6CC78";
-        //boardCon.fillRect(0,0,canvas.width,canvas.height);
-        var tweak = 10;
         
-         inc = Math.floor(boardheight / (((boardSize-1) + (boardSize-1)/tweak)));
-         
-         offset = Math.floor( (boardwidth - (boardSize - 1) * inc) / 2 );
-
-         var magic = offset*0.4;
-        boardCon.fillRect(translation + magic, magic, boardwidth - 2*magic,boardwidth - 2*magic);
-       
-        boardCon.beginPath();
-        boardCon.strokeStyle = 'black';
-       
+        drawBoard();
         
-        boardCon.lineWidth = 2;
-        for (var i = 0; i < boardSize; i++) {
-          boardCon.moveTo(translation+offset + inc * i, offset);
-          boardCon.lineTo(translation+offset + inc * i, boardheight - offset);
-          boardCon.moveTo(translation+offset, offset + inc * i);
-          boardCon.lineTo(translation+boardheight - offset, offset + inc * i);
-        }
-        boardCon.stroke();
-        boardCon.closePath();
-        var dotOff = offset + (boardSize - 1)/6 * inc;
-        var dotInc = (boardSize - 1)/3 * inc;
-        for (var i = 0 ; i < (boardSize-1)/2; i++){
-          var x = Math.floor(i / ((boardSize-1)/6));
-          var y = i % ((boardSize-1)/6);
-          startHereDot(boardCon, translation+dotOff + x * dotInc, dotOff + y * dotInc, 'black');
-        }
-
-        printPush(-1, -1, null);
         pushMemBoard(-1, -1, null);
+       // printPush(-1, -1, null);
         refreshButtons();
 
-        if (allRandom) beginRandomPlay();
+	}
+      function startHere() {
+      	window.addEventListener('resize', resizeCanvas, false);
+//      	initialDraw();
+
+      	startGame("first");
+      }
+      function resizeCanvas(){
+
+        drawBoard();
+
+        paintPieces(0, curPiece);
+
       }
 
-      function beginRandomPlay(){
-      	while (!done && curPiece < boardSize*boardSize - 1){
-      		        var c;
-	        if (flip){
-	          c = first;
-	        }
-	        else{
-	          c = (first == black) ? white: black;
-	        }
-	        flip = !flip;
-	        
-	        randomPlay(c);
-      	}
+      var b_AI;
+      var w_AI;
+      var b_ho;
+      var w_hom;
+      var b_ran;
+      var w_ran;
+      var humanColour;
+      var detectClick;
+      function AIPlay(c){
+      	randomPlay(c);
+      }
+      function humanPlay(){
       	
-
-
-
-      	if (curPiece == boardSize*boardSize - 1){
-      		alert("draw!");
-      	}
-      	else if (done){
-      		alert(winner + " won in " + curPiece + " random moves");
-      	}
-      	else{
-
-      	}
+      	detectClick = true;
       }
+      function startGame(initial){
+      	var colour = first;
+      	var w = document.getElementById("pwhite");
+      	var b = document.getElementById("pblack");
+      	var wPick = w.options[w.selectedIndex].value;
+      	var bPick = b.options[b.selectedIndex].value;
+      	b_AI = bPick == "AI";
+      	w_AI = wPick == "AI";
+      	b_hom = bPick == "human";
+      	w_hom = wPick == "human";
+      	b_ran = bPick == "random";
+      	w_ran = wPick == "random";
+      	if (initial == "first") {
+      		initialDraw();
+      		initPlay(first);
+
+      	}
+     }
+
+     function initPlay(colour){
+     	while(!done){
+     		     	if (colour == black){
+	      		if (b_AI) AIPlay(black);
+	      		else if (b_hom) {
+	      			humanPlay();
+	      			return;
+	      		}
+	      		else if (b_ran) randomPlay(black);
+	      	}
+	      	else{
+	      		if (w_AI) AIPlay(white);
+	      		else if (w_hom) {
+	      			humanPlay();
+	      			return;
+	      		}
+	      		else if (w_ran) randomPlay(white);
+	      	}
+      	colour = (colour == black) ? white : black;
+     	}
+
+      	
+      	
+     }
+      
       function stroke(begin, end, dir, colour){
         var first;
         var second;
@@ -292,15 +334,15 @@ function initialize(){
         }
         ;
       }
-      function startHereDot(boardCon, x, y, colour){
-        boardCon.beginPath();
-        boardCon.strokeStyle = colour;
-        boardCon.lineWidth   = inc*0.01;
-        boardCon.arc(x, y, inc*0.15 , 0, Math.PI * 2, true);
-        boardCon.stroke();
-        boardCon.fillStyle = colour;
-        boardCon.fill();
-        boardCon.closePath();
+      function startHereDot(boardContext, x, y, colour){
+        boardContext.beginPath();
+        boardContext.strokeStyle = colour;
+        boardContext.lineWidth   = inc*0.01;
+        boardContext.arc(x, y, inc*0.15 , 0, Math.PI * 2, true);
+        boardContext.stroke();
+        boardContext.fillStyle = colour;
+        boardContext.fill();
+        boardContext.closePath();
       }
       function markLastMove(ctx){
         var a = (pieceStack[curPiece].colour == 'black')? 'white' : 'black';
@@ -315,42 +357,43 @@ function initialize(){
         paintPiece(ctx, pieceStack[curPiece-1].x*inc + offset + translation, pieceStack[curPiece-1].y*inc + offset, revert, true);
          ctx.fillStyle = revert;
           //context.fillText("伍", pieceStack[curPiece-1].x*inc + offset, pieceStack[curPiece-1].y*inc + offset+inc*0.1);
-
       }
       function pushMemBoard(x,y, colour){
-        if (pieceCount >= 0){
-        	if (curPiece < pieceCount && curPiece > -1){
-        	  for (var i = 0; i < pieceCount-curPiece; i++) pieceStack.pop();
-           
-         	 pieceCount = curPiece;
+      	
+      	var count = pieceStack.length;
+      	
+        if (count >= 0){
+        	
+        	if (curPiece < count - 1 && curPiece > -1){
+
+        	  for (var i = 0; i < count-curPiece - 1; i++) {
+        	  	
+        	  	pieceStack.pop();
+        	  }
+         	 
     	  }
 
           pieceStack.push({'x':x, 'y':y, 'colour': colour}
                          );
           curPiece++;
-
-
           
         }
       }
-      function printPush(x, y, colour) {
-        printStep++;
-        if (printStep < printStack.length) {
-        	var len = printStack.length;
-        	for (var i = 0; i < len-printStep; i++){
-        	 printStack.pop();
-
-        	}
-
-        }
-        printStack.push(document.getElementById('pieces').toDataURL());
-      
-      }
+      // function printPush(x, y, colour) {
+      //   printStep++;
+      //   if (printStep < printStack.length) {
+      //   	var len = printStack.length;
+      //   	for (var i = 0; i < len-printStep; i++){
+      //   	 printStack.pop();
+      //   	}
+      //   }
+      //   printStack.push(document.getElementById('pieces').toDataURL());
+      // }
       function placePiece(x, y, colour){
-        boardArray[x][y] = {
-        }
-          ;
+        boardArray[x][y] = {};
+        
         cur = boardArray[x][y];
+        
         cur["up"] = {
           'colour': colour, 'length': 1, 'begin' : {'x' : x, 'y' : y}
           , 'end' : {'x' : x, 'y' : y}
@@ -378,10 +421,13 @@ function initialize(){
         res = res + checkAndJoin(x, y, colour, x-1, y+1, x+1, y-1);
         res = res + checkAndJoin(x, y, colour, x, y-1, x, y+1);
         //if (res != "") alert(res);
+        
+        
 
-        checkWin(x, y, colour);
+        
       }
       function unplace(x, y, colour){
+      	curPiece--;
         // alert("unsetting"+ x + "," + y);
         boardArray[x][y] = undefined;
         //down
@@ -420,7 +466,7 @@ function initialize(){
         var fore = (inRange(x2) && inRange(y2)) ? boardArray[x2][y2] : undefined;
         var aft = (inRange(x1) && inRange(y1)) ? boardArray[x1][y1] : undefined;
         var newlen = 0;
-        if (fore != undefined && aft != undefined) {
+        if (isDefined(fore)&& isDefined(aft)) {
           if (fore[type].colour == colour && aft[type].colour == colour){
             newforelen = Math.max(Math.abs(x-fore[type].end.x), Math.abs(y-fore[type].end.y));
             newaftlen = Math.max(Math.abs(x-aft[type].begin.x), Math.abs(y-aft[type].begin.y));
@@ -431,14 +477,14 @@ function initialize(){
             return;
           }
         }
-        if (fore != undefined && fore[type].colour == colour){
+        if (isDefined(fore) && fore[type].colour == colour){
           newforelen = Math.max(Math.abs(x-fore[type].end.x), Math.abs(y-fore[type].end.y));
           markRest(x,y, x2, y2, newforelen, newforelen, type, {'x' : x+a, 'y' : y+b}
                    , fore[type].end);
           //   alert("forelen: "+newforelen);
           return;
         }
-        if (aft != undefined && aft[type].colour == colour){
+        if (isDefined(aft) && aft[type].colour == colour){
           newaftlen = Math.max(Math.abs(x-aft[type].begin.x), Math.abs(y-aft[type].begin.y));
           markRest(x,y, x1, y1, newaftlen, newaftlen, type, aft[type].begin, {'x' : x-a, 'y' : y-b}
                   );
@@ -446,53 +492,83 @@ function initialize(){
           return;
         }
       }
+
+      function paintPieces(start, end){
+       	clearCanvas(pieceContext);
+       	
+      	for (var i = start; i <= end; i++) {
+      		
+      		if (i < 0 || i > pieceStack.length - 1) continue;
+      		var piece = pieceStack[i];
+      		var x = piece.x;
+      		var y = piece.y;
+
+      		if (!inRange(x) || !inRange(y)) continue;
+      		
+      		var colour = piece.colour;
+      		paintPiece(pieceContext, x*inc + translation + offset, y*inc + offset, colour, true, false);
+      		
+      		
+      	};
+      	
+      	checkWin(x, y, colour);
+
+
+      }
+
       function undo(myctx) {
+      	
         document.getElementById('undo').disabled = true;
-        if (printStep > 0) {
-          printStep--;
+        if (curPiece > 0) {
+        	
+          
           //    alert(curPiece);
           var x = pieceStack[curPiece].x;
           var y = pieceStack[curPiece].y;
           var c = pieceStack[curPiece].colour;
-          curPiece--;
-         // alert(curPiece + " " + printStep);
-
           
+         // alert(curPiece + " " + printStep);
           //   alert(c);
-           
+		
           unplace(x, y, c);
 
           done = false;
           flip = !flip;
-          var canvasPic = new Image();
-          canvasPic.src = printStack[printStep];
-          canvasPic.onload = function () {
-          	myctx.clearRect(0, 0, overlay.width, overlay.height);
-            myctx.drawImage(canvasPic, 0, 0);
+          
+          paintPieces(0, curPiece);
+          
+          markLastMove(pieceContext);
 
-          }
-            
+
         }
         refreshButtons();
+
       }
+
+      function clearCanvas(context){
+      	context.clearRect(0, 0, overlay.width, overlay.height);
+      }
+
       function redo(ctx) {
         document.getElementById('redo').disabled = true;
-        if (printStep < printStack.length-1) {
-          printStep++;
+        if (curPiece < pieceStack.length-1) {
+        	          
           curPiece++;
           var x = pieceStack[curPiece].x;
           var y = pieceStack[curPiece].y;
           var c = pieceStack[curPiece].colour;
+
           placePiece(x, y, c);
+
+
           flip = !flip;
-          var canvasPic = new Image();
-          canvasPic.src = printStack[printStep];
-          canvasPic.onload = function () {
-            ctx.drawImage(canvasPic, 0, 0);
-          }
+          paintPieces(0, curPiece);
+          markLastMove(pieceContext);
         }
-        refreshButtons();
         
+
+        refreshButtons();
+
       }
       function paintPiece(ctx, x, y, colour, solid){
         ctx.beginPath();
@@ -510,21 +586,21 @@ function initialize(){
           ctx.fill();
         }
         ctx.closePath();
-        octx.clearRect(0, 0, overlay.width, overlay.height);
+        overlayContext.clearRect(0, 0, overlay.width, overlay.height);
       }
-      function paintOverlay(octx, ox, oy, x, y, colour){
-        octx.clearRect(0, 0, overlay.width, overlay.height);
-        if (boardArray[ox][oy] != undefined || !inRange(ox) || !inRange(oy)) return;
-        octx.beginPath();
-        octx.globalAlpha = 0.5;
+      function paintOverlay(overlayContext, ox, oy, x, y, colour){
+        overlayContext.clearRect(0, 0, overlay.width, overlay.height);
+        if ( !inRange(ox) || !inRange(oy) || isDefined(boardArray[ox][oy]) ) return;
+        overlayContext.beginPath();
+        overlayContext.globalAlpha = 0.5;
         var r = inc*0.4;
-        octx.fillStyle = colour;
-        octx.arc(x, y, r+2 , 0, Math.PI * 2, true);
-        octx.fill();
-        octx.closePath();
+        overlayContext.fillStyle = colour;
+        overlayContext.arc(x, y, r+2 , 0, Math.PI * 2, true);
+        overlayContext.fill();
+        overlayContext.closePath();
       }
       function pushAndRefresh(x, y, colour){
-        printPush(x, y, colour);
+      //  printPush(x, y, colour);
         refreshButtons();
       }
       var flip = true;
@@ -583,24 +659,23 @@ function initialize(){
         }
         ;
       }
+      function isDefined(v){
+      	return !(typeof v === 'undefined')
+      }
       function inRange(k){
         return k >= 0 && k < boardSize;
       }
       function checkAndJoin(x, y, colour, x1, y1, x2, y2){
-
         var type;
         if (x1 < x2 && y1 < y2) type = 'down';
         if (x1 < x2 && y1 > y2) type = 'up';
         if (y1 == y2) type = 'hor';
         if (x1 == x2) type = 'ver';
-
         var cur = (inRange(x) && inRange(y)) ? boardArray[x][y] : undefined;
         var fore = (inRange(x1) && inRange(y1)) ?  boardArray[x1][y1] : undefined;
         var aft = (inRange(x2) && inRange(y2)) ? boardArray[x2][y2] : undefined;
-
         var newlen = 0;
-
-        if (fore != undefined && aft != undefined) {
+        if (isDefined(fore) && isDefined(aft)) {
           if (fore[type].colour == colour && aft[type].colour == colour){
             newlen = fore[type].length + aft[type].length + 1;
             cur[type].begin.x = fore[type].begin.x;
@@ -613,7 +688,7 @@ function initialize(){
             return (newlen + " " + type);
           }
         }
-        if (fore != undefined && fore[type].colour == colour){
+        if (isDefined(fore) && fore[type].colour == colour){
           newlen = fore[type].length + 1;
           cur[type].begin.x = fore[type].begin.x;
           cur[type].begin.y = fore[type].begin.y;
@@ -621,7 +696,7 @@ function initialize(){
           markRest(x,y, x1, y1, fore[type].length, newlen, type, cur[type].begin, cur[type].end);
           return (newlen + " " + type);
         }
-        if (aft != undefined && aft[type].colour == colour){
+        if (isDefined(aft) && aft[type].colour == colour){
           newlen = aft[type].length + 1;
           cur[type].end.x = aft[type].end.x;
           cur[type].end.y = aft[type].end.y;
@@ -633,102 +708,99 @@ function initialize(){
         return "";
       }
       function checkWin(x, y, colour){
+      	
+      	if (!inRange(x) || !inRange(y)) return;
         if (boardArray[x][y]["up"].length >= 5 ||
             boardArray[x][y]["down"].length >= 5 || 
             boardArray[x][y]["hor"].length >= 5 ||
             boardArray[x][y]["ver"].length >= 5 ){
           //alert(colour + " wins!");
           circleWinner(pieceContext, x, y, colour);
+
           done = true;
           winner = colour;
-          // startHere();
         }
+        else if (curPiece == boardSize*boardSize){
+          	done = true;
+          	alert("Draw!");
+        }
+
       }
       function play(x, y, c){
       	var paintX = x*inc + offset + translation;
         var paintY = y*inc + offset;
-          
         if (paintX > boardwidth + translation || paintY > boardwidth) return;
-
-          
         if (done) {
-          // startHere();
           // done = false;
           return;
         }
-        if (boardArray[x][y] != undefined) return;
 
-        
-        paintPiece(pieceContext, paintX, paintY, c, true, false);
+        if (isDefined(boardArray[x][y])) return;
+        //paintPiece(pieceContext, paintX, paintY, c, true, false);
 
         placePiece(x, y, c);
-
         pushMemBoard(x, y, c);
+        
+        
+        paintPieces(0, curPiece);
 
         markLastMove(pieceContext);
         pushAndRefresh(x, y, c);
-        pieceCount++;
+        
         //alert("piececount is " + pieceCount);
       }
       function clickHandler(e) {
-     	
+     	if (!detectClick) return;
+
         var dsocleft=document.all? iebody.scrollLeft : pageXOffset
         var dsoctop=document.all? iebody.scrollTop : pageYOffset
         var y = Math.round((e.clientY + dsoctop - offset)/inc);
         var x =  Math.round((e.clientX + dsocleft - offset - translation)/inc);
-        
-        var c;
-        if (flip){
-          c = first;
-        }
-        else{
-          c = (first == black) ? white: black;
-        }
-        flip = !flip;
+        var c = (pieceStack[curPiece].colour == black) ? white : black;
         
         play(x, y, c);
-
-       
         
-      }
-      function invokeRandom(){
-      	allRandom = true;
-      	startHere();
-      	allRandom = false;
-      }
-      function randomPlay(c){
-      	var k = Math.floor((Math.random()*(boardSize*boardSize-randCount + 1))) + randCount;
+        detectClick = false;
+       	c = (c == black) ? white : black;
+       	
+       	initPlay(c);
 
 
+
+      }
+
+      var curRand;
+       function randomPlay(c){
+      	var k = Math.floor((Math.random()*(boardSize*boardSize-randCount))) + randCount;
+      	curRand = k;
         var tmp = randArray[k];
         randArray[k] = randArray[randCount];
         randArray[randCount] = tmp;
-        
 
-        play(randArray[randCount][0], randArray[randCount][1], c);
+        var randx = randArray[randCount][0];
+        var randy = randArray[randCount][1];
+
+        play(randx, randy, c);
         randCount++;
       }
       window.onmousemove = handleMouseMove;
-
       function undoAll(ctx){
-      	while(printStep > 0){
+      	while(curPiece > 0){
       		undo(ctx);
       	}
       }
       function redoAll(ctx){
-      	while(printStep < printStack.length-1){
+      	while(curPiece < pieceStack.length-1){
       		redo(ctx);
       	}
       }
       function handleMouseMove(event) {
         event = event || window.event;
-        
         // event.clientX and event.clientY contain the mouse position
         var dsocleft=document.all? iebody.scrollLeft : pageXOffset
         var dsoctop=document.all? iebody.scrollTop : pageYOffset
         var y = Math.round((event.clientY + dsoctop - offset)/inc);
         var x =  Math.round((event.clientX + dsocleft - offset - translation)/inc);
-
         var paintX = x*inc + offset + translation;
         var paintY = y*inc + offset;
         if (paintX > boardwidth + translation || paintY > boardwidth) return;
@@ -739,7 +811,7 @@ function initialize(){
           colour = (colour == black) ? white : black;
         }
         // function paintPiece(x, y, colour, solid, extra){
-        paintOverlay(octx, x, y, paintX, paintY, colour );
+        paintOverlay(overlayContext, x, y, paintX, paintY, colour );
       }
     </script>
     <input id="undo" style="z-index:10;position:relative;" type="button" value="undo" onclick="undo(pieceContext);" />
@@ -748,9 +820,29 @@ function initialize(){
     <input id="undoAll" style="z-index:10;position:relative;" type="button" value="undoAll" onclick="undoAll(pieceContext);" />
     <input id="redoAll" style="z-index:10;position:relative;" type="button" value="redoAll" onclick="redoAll(pieceContext);" />
     <br>
-    <input id="reset" style="z-index:10;position:relative;" type="button" value="reset" onclick="startHere();" />
+   <!--  <input id="reset" style="z-index:10;position:relative;" type="button" value="reset" onclick="startHere();" />
     <br>
     <br>
-    <input id="random" style="z-index:10;position:relative;" type="button" value="random" onclick="invokeRandom();" />
-  </body>
+    <input id="random" style="z-index:10;position:relative;" type="button" value="random" onclick="invokeRandom();" /> -->
+    <br>
+    <label style = "color: white;" for="pblack">
+    black
+</label>
+<select id="pblack" style="z-index:10;position:relative;">
+    <option value = "human">human</option>
+    <option value = "AI">AI</option>
+    <option value = "random">random</option>
+</select>
+	<br>
+	    <label style = "color: white;"for="pwhite">
+    white
+</label>
+<select id="pwhite" style="z-index:10;position:relative;">
+    <option value = "human">human</option>
+    <option value = "AI">AI</option>
+    <option value = "random">random</option>
+</select>
+<br>
+<input id="newgame" style="z-index:10;position:relative;" type="button" value="new game" onclick="startGame('first')" />
+    </body>
 </html>

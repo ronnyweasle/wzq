@@ -203,7 +203,9 @@ function initialize(){
       var humanColour;
       var detectClick;
       function AIPlay(c){
+      	detectClick = false;
       	randomPlay(c);
+      	detectClick = true;
       }
       function humanPlay(){
       	
@@ -517,7 +519,8 @@ function initialize(){
       }
 
       function undo(myctx) {
-      	
+      	done = false;
+
         document.getElementById('undo').disabled = true;
         if (curPiece > 0) {
         	
@@ -724,7 +727,9 @@ function initialize(){
           	done = true;
           	alert("Draw!");
         }
-
+        else{
+        	done = false;
+        }
       }
       function play(x, y, c){
       	var paintX = x*inc + offset + translation;
@@ -750,7 +755,7 @@ function initialize(){
         //alert("piececount is " + pieceCount);
       }
       function clickHandler(e) {
-     	if (!detectClick) return;
+     	if (!detectClick || done) return;
 
         var dsocleft=document.all? iebody.scrollLeft : pageXOffset
         var dsoctop=document.all? iebody.scrollTop : pageYOffset
@@ -760,7 +765,7 @@ function initialize(){
         
         play(x, y, c);
         
-        detectClick = false;
+        
        	c = (c == black) ? white : black;
        	
        	initPlay(c);
@@ -771,6 +776,7 @@ function initialize(){
 
       var curRand;
        function randomPlay(c){
+       	detectClick = false;
       	var k = Math.floor((Math.random()*(boardSize*boardSize-randCount))) + randCount;
       	curRand = k;
         var tmp = randArray[k];
@@ -782,11 +788,13 @@ function initialize(){
 
         play(randx, randy, c);
         randCount++;
+        detectClick = true;
       }
       window.onmousemove = handleMouseMove;
       function undoAll(ctx){
       	while(curPiece > 0){
       		undo(ctx);
+
       	}
       }
       function redoAll(ctx){

@@ -153,9 +153,12 @@ function drawBoard() {
 
 	boardContext.fillStyle = "#F6CC78";
 
-	var tweak = 10;
-	inc = Math.floor(boardheight / (((boardSize - 1) + (boardSize - 1) / tweak)));
+	
+	inc = Math.round(boardheight / (boardSize + 0.75));
+	
+	
 	offset = Math.floor((boardwidth - (boardSize - 1) * inc) / 2);
+	
 	var magic = offset * 0.4;
 	boardContext.fillRect(translation + magic, magic, boardwidth - 2 * magic, boardwidth - 2 * magic);
 	boardContext.beginPath();
@@ -567,7 +570,7 @@ function drawPiece(ctx, x, y, colour, solid) {
 	ctx.beginPath();
 	ctx.strokeStyle = colour;
 
-	var r = inc * 0.4;
+	var r = inc * 0.41;
 	ctx.fillStyle = colour;
 	if (!solid) {
 		ctx.arc(x, y, r, 0, Math.PI * 2, true);
@@ -575,7 +578,7 @@ function drawPiece(ctx, x, y, colour, solid) {
 		ctx.stroke();
 	}
 	if (solid) {
-		ctx.arc(x, y, r + 2, 0, Math.PI * 2, true);
+		ctx.arc(x, y, r, 0, Math.PI * 2, true);
 		ctx.fill();
 	}
 	ctx.closePath();
@@ -813,9 +816,9 @@ function mouseMoveHandler(event) {
 		onclick="redo(pieceContext);" />
 		<br>
 		<input id="undoAll" style="z-index:10;position:relative;" type="button"
-		value="undoAll" onclick="undoAll(pieceContext);" />
+		value="undo all" onclick="undoAll(pieceContext);" />
 		<input id="redoAll" style="z-index:10;position:relative;" type="button"
-		value="redoAll" onclick="redoAll(pieceContext);" />
+		value="redo all" onclick="redoAll(pieceContext);" />
 		<br>
 		<br>
 		<label style="z-index:10;position:relative;color: white;" for="pblack">

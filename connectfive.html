@@ -757,7 +757,12 @@ function randomPlay(c) {
 	var randx = randArray[randCount][0];
 	var randy = randArray[randCount][1];
 
-	play(randx, randy, c);
+	// in case spot already taken
+	if (!play(randx, randy, c)){
+		randomPlay(c);
+		return;
+	}
+
 	randCount++;
 	detectClick = true;
 }

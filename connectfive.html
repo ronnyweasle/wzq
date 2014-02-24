@@ -1,847 +1,850 @@
 <html>
-  <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>
-    </title>
-  </head>
-  <body bgcolor='black' onload="javascript: startHere();">
-    <canvas id="board" 
-    style="z-index: 1;
-position:absolute;
-left:0px;
-top:0px;
-" >
-  This text is displayed if your browser does not support HTML5 Canvas.
-    </canvas>
-    <canvas id="pieces" 
-    style="z-index: 2;
-position:absolute;
-left:0px;
-top:0px;
-" >
-  This text is displayed if your browser does not support HTML5 Canvas.
-    </canvas>
-    <canvas id="overlay" 
-    style="z-index: 3;
-position:absolute;
-left:0px;
-top:0px;    
-" onclick="javascript: clickHandler(event);">
-  This text is displayed if your browser does not support HTML5 Canvas.
-    </canvas>
-    <script>
-    var isMac = navigator.platform.toUpperCase().indexOf('MAC')>=0;
-      var xBoard = 0;
-      var oBoard = 0;
-      var begin = false;
-      var boardContext;
-      var pieceContext;
-      var boardwidth, boardheight;
-      var offset;
-      var inc;
-      var black = 'black';
-      var white = 'white';
-      var first = black;
-      var moves = new Array();
-      var printStack = new Array();
-      var pieceStack = new Array();
-      var printStep = -1;
-      var pieceCount = 0;
-      var curPiece = -1;
-      var boardArray;
-      var done = false;
-      var overlayContext = document.getElementById("overlay").getContext('2d');
-      var overlay = document.getElementById("overlay");
-      var boardSize = 19;
-      var translation;
-      var randArray;
-      var randCount;
-      var allRandom = false;
-      var winner;
-      var initialWidth;
-      function refreshButtons(){
-        if (curPiece == 0){
-          document.getElementById('undo').disabled = true;
-          document.getElementById('undoAll').disabled = true;
-        }
-        else{
-          document.getElementById('undo').disabled = false;
-          document.getElementById('undoAll').disabled = false;
-        }
-        if (curPiece == pieceStack.length - 1){
-          document.getElementById('redo').disabled = true;
-          document.getElementById('redoAll').disabled = true;
-        }
-        else{
-          document.getElementById('redo').disabled = false;
-          document.getElementById('redoAll').disabled = false;
-        }
-      }
-function initialize(){
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+		<title>
+		</title>
+	</head>
+	<body bgcolor='black' onload="javascript: startHere();">
+		<canvas id="board" style="z-index: 1;
+									position:absolute;
+									left:0px;
+									top:0px;
+									">
+			This text is displayed if your browser does not support HTML5 Canvas.
+		</canvas>
+		<canvas id="pieces" style="z-index: 2;
+									position:absolute;
+									left:0px;
+									top:0px;
+									">
+			This text is displayed if your browser does not support HTML5 Canvas.
+		</canvas>
+		<canvas id="overlay" style="z-index: 3;
+									position:absolute;
+									left:0px;
+									top:0px;    
+									" onclick="javascript: mouseclickHandler(event);">
+			This text is displayed if your browser does not support HTML5 Canvas.
+		</canvas>
+		<script>
+		// WuZiQi: 5, 19
+// TicTacToe: 3, 3
+var winCount = 5; //5
+var boardSize = 19; // 19
+var isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+var dpiMultiplier = 1;
+var xBoard = 0;
+var oBoard = 0;
+var begin = false;
+var boardContext;
+var pieceContext;
+var boardwidth, boardheight;
+var offset;
+var inc;
+var black = 'black';
+var white = 'white';
+var first = black;
+var moves = new Array();
+var printStack = new Array();
+var pieceStack = new Array();
+var printStep = -1;
+var pieceCount = 0;
+var curPiece = -1;
+var boardArray;
+var done = false;
+var overlayContext = document.getElementById("overlay").getContext('2d');
+var overlay = document.getElementById("overlay");
+
+var translation;
+var randArray;
+var randCount;
+var allRandom = false;
+var winner;
+var initialWidth;
+
+function refreshButtons() {
+	if (curPiece == 0) {
+		document.getElementById('undo').disabled = true;
+		document.getElementById('undoAll').disabled = true;
+	} else {
+		document.getElementById('undo').disabled = false;
+		document.getElementById('undoAll').disabled = false;
+	}
+	if (curPiece == pieceStack.length - 1) {
+		document.getElementById('redo').disabled = true;
+		document.getElementById('redoAll').disabled = true;
+	} else {
+		document.getElementById('redo').disabled = false;
+		document.getElementById('redoAll').disabled = false;
+	}
+}
+
+function initialize() {
+
+	if (window.devicePixelRatio && window.devicePixelRatio > 1) {
+		dpiMultiplier = window.devicePixelRatio;
+	}
+
 	randCount = 0;
-	  xBoard = 0;
-      oBoard = 0;
-      begin = false;
-      black = 'black';
-      white = 'white';
-      first = black;
-      moves = new Array();
-     // printStack = new Array();
-      pieceStack = new Array();
-      
-      randArray = new Array(boardSize*boardSize);
-      for (var i = boardSize*boardSize - 1; i >= 0; i--) {
-      	randArray[i] = [Math.floor(i/boardSize), i%boardSize];
-      };
-     // printStep = -1;
-      pieceCount = 0;
-      curPiece = -1;
-      boardArray;
-      done = false;
-      overlayContext = document.getElementById("overlay").getContext('2d');
-      overlay = document.getElementById("overlay");
+	xBoard = 0;
+	oBoard = 0;
+	begin = false;
+	black = 'black';
+	white = 'white';
+	first = black;
+	moves = new Array();
+	// printStack = new Array();
+	pieceStack = new Array();
 
-      var canvas = document.getElementById("pieces");
-        var boardcanvas = document.getElementById("board");
-                canvas.width  = window.innerWidth;
-        
-       
-          canvas.height = window.innerHeight;
-        pieceContext = canvas.getContext('2d');
-        pieceContext.clearRect(0, 0, canvas.width,canvas.height);
-        boardContext = boardcanvas.getContext('2d');
-        pieceContext.globalAlpha = 1;
+	randArray = new Array(boardSize * boardSize);
+	for (var i = boardSize * boardSize - 1; i >= 0; i--) {
+		randArray[i] = [Math.floor(i / boardSize), i % boardSize];
+	};
+	// printStep = -1;
+	pieceCount = 0;
+	curPiece = -1;
+	boardArray;
+	done = false;
+	overlayContext = document.getElementById("overlay").getContext('2d');
+	overlay = document.getElementById("overlay");
 
+	var pieceCanvas = document.getElementById("pieces");
+	var boardcanvas = document.getElementById("board");
+	pieceCanvas.width = window.innerWidth;
+	pieceCanvas.height = window.innerHeight;
+	pieceContext = pieceCanvas.getContext('2d');
+	pieceContext.clearRect(0, 0, pieceCanvas.width, pieceCanvas.height);
+	boardContext = boardcanvas.getContext('2d');
+	pieceContext.globalAlpha = 1;
+}
+
+function drawBoard() {
+	var pieceCanvas = document.getElementById("pieces");
+	var boardcanvas = document.getElementById("board");
+
+	boardContext = boardcanvas.getContext('2d');
+
+	w = window.innerWidth;
+	h = window.innerHeight;
+
+	pieceCanvas.height = h;
+	pieceCanvas.width = w;
+	boardwidth = Math.min(h, w);
+	boardheight = boardwidth;
+	overlay.height = h;
+	overlay.width = w;
+	boardcanvas.width = w;
+	boardcanvas.height = h;
+	translation = (w - boardwidth) / 2;
+	//hiDPI displays
+	var canvases = [pieceCanvas, overlay, boardcanvas];
+
+	if (dpiMultiplier > 1) {
+		for (var i = 0; i < canvases.length; i++) {
+			canvases[i].style.width = w + 'px';
+			canvases[i].style.height = h + 'px';
+			canvases[i].width = w * dpiMultiplier;
+			canvases[i].height = h * dpiMultiplier;
+		}
+		boardwidth = boardwidth * dpiMultiplier;
+		boardheight = boardheight * dpiMultiplier;
+		translation = translation * dpiMultiplier;
+	}
+
+	boardContext.fillStyle = "#F6CC78";
+
+	var tweak = 10;
+	inc = Math.floor(boardheight / (((boardSize - 1) + (boardSize - 1) / tweak)));
+	offset = Math.floor((boardwidth - (boardSize - 1) * inc) / 2);
+	var magic = offset * 0.4;
+	boardContext.fillRect(translation + magic, magic, boardwidth - 2 * magic, boardwidth - 2 * magic);
+	boardContext.beginPath();
+	boardContext.strokeStyle = 'black';
+	boardContext.lineWidth = inc * 0.05;
+	for (var i = 0; i < boardSize; i++) {
+		boardContext.moveTo(translation + offset + inc * i, offset);
+		boardContext.lineTo(translation + offset + inc * i, boardheight - offset);
+		boardContext.moveTo(translation + offset, offset + inc * i);
+		boardContext.lineTo(translation + boardheight - offset, offset + inc * i);
+	}
+	boardContext.stroke();
+	boardContext.closePath();
+	if (boardSize == 19) drawDots();
+}
+
+function drawDots() {
+	var dotOff = offset + (boardSize - 1) / 6 * inc;
+	var dotInc = (boardSize - 1) / 3 * inc;
+
+	for (var i = 0; i < (boardSize - 1) / 2; i++) {
+		var x = Math.floor(i / ((boardSize - 1) / 6));
+		var y = i % ((boardSize - 1) / 6);
+		drawDot(boardContext, translation + dotOff + x * dotInc, dotOff + y * dotInc, 'black');
+	}
+}
+
+function initialDraw() {
+	initialWidth = window.innerWidth;
+	initialize();
+
+	boardArray = new Array(boardSize);
+	for (var i = 0; i < boardSize; i++) {
+		boardArray[i] = new Array(boardSize);
+	}
+	drawBoard();
+	pushBoard(-1, -1, null);
+	refreshButtons();
+}
+
+function startHere() {
+	window.addEventListener('resize', resizeCanvas, false);
+	startGame("first");
+}
+
+function resizeCanvas() {
+	drawBoard();
+	drawPieces(0, curPiece);
+}
+var b_AI;
+var w_AI;
+var b_ho;
+var w_hom;
+var b_ran;
+var w_ran;
+var humanColour;
+var detectClick;
+
+function AIPlay(c) {
+	detectClick = false;
+	randomPlay(c);
+	detectClick = true;
+}
+
+function humanPlay() {
+
+	detectClick = true;
+}
+
+function startGame(initial) {
+	var colour = first;
+	var w = document.getElementById("pwhite");
+	var b = document.getElementById("pblack");
+	var wPick = w.options[w.selectedIndex].value;
+	var bPick = b.options[b.selectedIndex].value;
+	b_AI = bPick == "AI";
+	w_AI = wPick == "AI";
+	b_hom = bPick == "human";
+	w_hom = wPick == "human";
+	b_ran = bPick == "random";
+	w_ran = wPick == "random";
+	if (initial == "first") {
+		initialDraw();
+		initPlay(first);
+	}
+}
+
+function initPlay(colour) {
+	while (!done) {
+		if (colour == black) {
+			if (b_AI) AIPlay(black);
+			else if (b_hom) {
+				humanPlay();
+				return;
+			} else if (b_ran) randomPlay(black);
+		} else {
+			if (w_AI) AIPlay(white);
+			else if (w_hom) {
+				humanPlay();
+				return;
+			} else if (w_ran) randomPlay(white);
+		}
+		colour = (colour == black) ? white : black;
+	}
+}
+
+function circle(ctx, begin, end, dir, colour) {
+	ctx.beginPath();
+	ctx.strokeStyle = 'red';
+	ctx.lineWidth = inc * 0.075;
+	var rad = inc * 0.55;
+	var pythInc = Math.floor(rad / Math.sqrt(2));
+	if (dir == "ver") {
+		var alpha = (begin.y < end.y) ? begin : end;
+		var beta = (begin.y < end.y) ? end : begin;
+		ctx.arc(offset + alpha.x * inc + translation, offset + inc * alpha.y, rad, 0, Math.PI, true);
+		ctx.moveTo(offset + inc * beta.x + rad + translation, offset + inc * beta.y);
+		ctx.arc(offset + inc * beta.x + translation, offset + inc * beta.y, rad, 0, Math.PI, false);
+		ctx.moveTo(offset + alpha.x * inc - rad + translation, offset + inc * alpha.y);
+		ctx.lineTo(offset + inc * beta.x - rad + translation, offset + inc * beta.y);
+		ctx.moveTo(offset + alpha.x * inc + rad + translation, offset + inc * alpha.y);
+		ctx.lineTo(offset + inc * beta.x + rad + translation, offset + inc * beta.y);
+	} else if (dir == "hor") {
+		var alpha = (begin.x < end.x) ? begin : end;
+		var beta = (begin.x < end.x) ? end : begin;
+		ctx.arc(offset + inc * alpha.x + translation, offset + inc * alpha.y, rad, Math.PI / 2, Math.PI * 3 / 2, false);
+		ctx.moveTo(offset + inc * beta.x + translation, offset + inc * beta.y + rad);
+		ctx.arc(offset + inc * beta.x + translation, offset + inc * beta.y, rad, Math.PI / 2, Math.PI * 3 / 2, true);
+		ctx.moveTo(offset + inc * alpha.x + translation, offset + inc * alpha.y - rad);
+		ctx.lineTo(offset + inc * beta.x + translation, offset + inc * beta.y - rad);
+		ctx.moveTo(offset + inc * alpha.x + translation, offset + inc * alpha.y + rad);
+		ctx.lineTo(offset + inc * beta.x + translation, offset + inc * beta.y + rad);
+	} else if (dir == "up") {
+		if (isMac && dpiMultiplier > 1) rad = rad - 0.5;
+		else if (!isMac) rad--;
+		var alpha = (begin.x < end.x) ? begin : end;
+		var beta = (begin.x < end.x) ? end : begin;
+		ctx.arc(offset + inc * alpha.x + translation, offset + inc * alpha.y, rad, Math.PI / 4, Math.PI * 5 / 4, false);
+		ctx.moveTo(offset + inc * beta.x + pythInc + translation, offset + inc * beta.y + pythInc);
+		ctx.arc(offset + inc * beta.x + translation, offset + inc * beta.y, rad, Math.PI / 4, Math.PI * 5 / 4, true);
+		ctx.moveTo(offset + inc * alpha.x - pythInc + translation, offset + inc * alpha.y - pythInc);
+		ctx.lineTo(offset + inc * beta.x - pythInc + translation, offset + inc * beta.y - pythInc);
+		ctx.moveTo(offset + inc * alpha.x + pythInc + translation, offset + inc * alpha.y + pythInc);
+		ctx.lineTo(offset + inc * beta.x + pythInc + translation, offset + inc * beta.y + pythInc);
+	} else if (dir == "down") {
+		if (isMac && dpiMultiplier > 1) rad = rad - 0.5;
+		else if (!isMac) rad--;
+
+		var alpha = (begin.x < end.x) ? begin : end;
+		var beta = (begin.x < end.x) ? end : begin;
+		ctx.arc(offset + inc * alpha.x + translation, offset + inc * alpha.y, rad, Math.PI * 3 / 4, Math.PI * 7 / 4, false);
+		ctx.moveTo(offset + inc * beta.x - pythInc + translation, offset + inc * beta.y + pythInc);
+		ctx.arc(offset + inc * beta.x + translation, offset + inc * beta.y, rad, Math.PI * 3 / 4, Math.PI * 7 / 4, true);
+		ctx.moveTo(offset + inc * alpha.x - pythInc + translation, offset + inc * alpha.y + pythInc);
+		ctx.lineTo(offset + inc * beta.x - pythInc + translation, offset + inc * beta.y + pythInc);
+		ctx.moveTo(offset + inc * alpha.x + pythInc + translation, offset + inc * alpha.y - pythInc);
+		ctx.lineTo(offset + inc * beta.x + pythInc + translation, offset + inc * beta.y - pythInc);
+	}
+	ctx.stroke();
+	ctx.closePath();
+}
+
+function circleWinner(ctx, x, y, colour) {
+	done = true;
+	//alert(colour+" won!");
+	ctx.strokeStyle = colour;
+	var dirs = ["up", "down", "hor", "ver"];
+	for (var i = dirs.length - 1; i >= 0; i--) {
+		curDir = boardArray[x][y][dirs[i]];
+		if (curDir.length >= winCount) {
+			circle(pieceContext, curDir.begin, curDir.end, dirs[i], colour);
+		}
+	};
+}
+
+function drawDot(boardContext, x, y, colour) {
+	boardContext.beginPath();
+	boardContext.strokeStyle = colour;
+	boardContext.lineWidth = inc * 0.01;
+	boardContext.arc(x, y, inc * 0.15, 0, Math.PI * 2, true);
+	boardContext.stroke();
+	boardContext.fillStyle = colour;
+	boardContext.fill();
+	boardContext.closePath();
+}
+
+function markLastMove(ctx) {
+	var a = (pieceStack[curPiece].colour == 'black') ? 'white' : 'black';
+
+	ctx.fillStyle = a;
+	ctx.font = "bold " + inc * 0.5 + "px SimSun";
+	ctx.textAlign = "center";
+	ctx.fillText("五", pieceStack[curPiece].x * inc + offset + translation, pieceStack[curPiece].y * inc + offset + inc * 0.15);
+
+	if (curPiece - 1 <= 0) return;
+	var revert = pieceStack[curPiece - 1].colour;
+	drawPiece(ctx, pieceStack[curPiece - 1].x * inc + offset + translation, pieceStack[curPiece - 1].y * inc + offset, revert, true);
+	ctx.fillStyle = revert;
+}
+
+function pushBoard(x, y, colour) {
+	var count = pieceStack.length;
+	if (count >= 0) {
+		if (curPiece < count - 1 && curPiece > -1) {
+			for (var i = 0; i < count - curPiece - 1; i++) pieceStack.pop();
+		}
+		pieceStack.push({
+			'x': x,
+			'y': y,
+			'colour': colour
+		});
+		curPiece++;
+	}
+}
+
+function placePiece(x, y, colour) {
+	boardArray[x][y] = {};
+
+	cur = boardArray[x][y];
+
+	cur["up"] = {
+		'colour': colour,
+		'length': 1,
+		'begin': {
+			'x': x,
+			'y': y
+		},
+		'end': {
+			'x': x,
+			'y': y
+		}
+	};
+	cur["down"] = {
+		'colour': colour,
+		'length': 1,
+		'begin': {
+			'x': x,
+			'y': y
+		},
+		'end': {
+			'x': x,
+			'y': y
+		}
+	};
+	cur["hor"] = {
+		'colour': colour,
+		'length': 1,
+		'begin': {
+			'x': x,
+			'y': y
+		},
+		'end': {
+			'x': x,
+			'y': y
+		}
+	};
+	cur["ver"] = {
+		'colour': colour,
+		'length': 1,
+		'begin': {
+			'x': x,
+			'y': y
+		},
+		'end': {
+			'x': x,
+			'y': y
+		}
+	};
+	var res = "";
+
+	res = res + checkAndJoin(x, y, colour, x - 1, y - 1, x + 1, y + 1);
+	res = res + checkAndJoin(x, y, colour, x - 1, y, x + 1, y);
+	res = res + checkAndJoin(x, y, colour, x - 1, y + 1, x + 1, y - 1);
+	res = res + checkAndJoin(x, y, colour, x, y - 1, x, y + 1);
+}
+
+function unplace(x, y, colour) {
+	boardArray[x][y] = undefined;
+	//down
+	checkAndSever(x, y, colour, x - 1, y - 1, x + 1, y + 1);
+	//hor
+	checkAndSever(x, y, colour, x - 1, y, x + 1, y);
+	//up
+	checkAndSever(x, y, colour, x - 1, y + 1, x + 1, y - 1);
+	//ver
+	checkAndSever(x, y, colour, x, y - 1, x, y + 1);
+}
+
+function checkAndSever(x, y, colour, x1, y1, x2, y2) {
+	var type;
+	if (x1 < x2 && y1 < y2) type = 'down';
+	if (x1 < x2 && y1 > y2) type = 'up';
+	if (y1 == y2) type = 'hor';
+	if (x1 == x2) type = 'ver';
+	var a;
+	var b;
+	if (type == 'down') {
+		a = 1;
+		b = 1;
+	} else if (type == 'up') {
+		a = 1;
+		b = -1;
+	} else if (type == 'hor') {
+		a = 1;
+		b = 0;
+	} else {
+		a = 0;
+		b = 1;
+	}
+	var fore = (inRange(x2) && inRange(y2)) ? boardArray[x2][y2] : undefined;
+	var aft = (inRange(x1) && inRange(y1)) ? boardArray[x1][y1] : undefined;
+	var newlen = 0;
+	if (isDefined(fore) && isDefined(aft)) {
+		if (fore[type].colour == colour && aft[type].colour == colour) {
+			newforelen = Math.max(Math.abs(x - fore[type].end.x), Math.abs(y - fore[type].end.y));
+			newaftlen = Math.max(Math.abs(x - aft[type].begin.x), Math.abs(y - aft[type].begin.y));
+			markRest(x, y, x2, y2, newforelen, newforelen, type, {
+				'x': x + a,
+				'y': y + b
+			}, fore[type].end);
+			markRest(x, y, x1, y1, newaftlen, newaftlen, type, aft[type].begin, {
+				'x': x - a,
+				'y': y - b
+			});
+			return;
+		}
+	}
+	if (isDefined(fore) && fore[type].colour == colour) {
+		newforelen = Math.max(Math.abs(x - fore[type].end.x), Math.abs(y - fore[type].end.y));
+		markRest(x, y, x2, y2, newforelen, newforelen, type, {
+			'x': x + a,
+			'y': y + b
+		}, fore[type].end);
+		//   alert("forelen: "+newforelen);
+		return;
+	}
+	if (isDefined(aft) && aft[type].colour == colour) {
+		newaftlen = Math.max(Math.abs(x - aft[type].begin.x), Math.abs(y - aft[type].begin.y));
+		markRest(x, y, x1, y1, newaftlen, newaftlen, type, aft[type].begin, {
+			'x': x - a,
+			'y': y - b
+		});
+		// alert("aftlen: "+newaftlen);
+		return;
+	}
+}
+
+function drawPieces(start, end) {
+	clearCanvas(pieceContext);
+	var x;
+	var y;
+	var colour;
+	for (var i = start; i <= end; i++) {
+
+		if (i < 0 || i > pieceStack.length - 1) continue;
+		var piece = pieceStack[i];
+		x = piece.x;
+		y = piece.y;
+
+		if (!inRange(x) || !inRange(y)) continue;
+
+		colour = piece.colour;
+		drawPiece(pieceContext, x * inc + translation + offset, y * inc + offset, colour, true);
+	};
+	markLastMove(pieceContext);
+	checkWin(x, y, colour);
+}
+
+function undo(myctx) {
+	done = false;
+
+	document.getElementById('undo').disabled = true;
+	if (curPiece > 0) {
+		var x = pieceStack[curPiece].x;
+		var y = pieceStack[curPiece].y;
+		var c = pieceStack[curPiece].colour;
+
+		unplace(x, y, c);
+		curPiece--;
+		done = false;
+
+		drawPieces(0, curPiece);
+	}
+	refreshButtons();
 
 }
 
- function drawBoard(){
- 	var canvas = document.getElementById("pieces");
-        var boardcanvas = document.getElementById("board");
-      
-        boardContext = boardcanvas.getContext('2d');
-        
-        w = window.innerWidth;
-        h = window.innerHeight;
-          
-        canvas.height = h;
-        canvas.width = w;
-        boardwidth = Math.min(h, w);
-        boardheight = boardwidth;
-        overlay.height = h;
-        overlay.width = w;
-        boardcanvas.width = w;
-        boardcanvas.height = h;
-        translation = (w - boardwidth)/2;
-        boardContext.fillStyle = "#F6CC78";
-        //boardContext.fillRect(0,0,canvas.width,canvas.height);
-        var tweak = 10;
-         inc = Math.floor(boardheight / (((boardSize-1) + (boardSize-1)/tweak)));
-         offset = Math.floor( (boardwidth - (boardSize - 1) * inc) / 2 );
-         var magic = offset*0.4;
-        boardContext.fillRect(translation + magic, magic, boardwidth - 2*magic,boardwidth - 2*magic);
-        boardContext.beginPath();
-        boardContext.strokeStyle = 'black';
-        boardContext.lineWidth = h*0.00225;
-        for (var i = 0; i < boardSize; i++) {
-          boardContext.moveTo(translation+offset + inc * i, offset);
-          boardContext.lineTo(translation+offset + inc * i, boardheight - offset);
-          boardContext.moveTo(translation+offset, offset + inc * i);
-          boardContext.lineTo(translation+boardheight - offset, offset + inc * i);
-        }
-        boardContext.stroke();
-        boardContext.closePath();
-        var dotOff = offset + (boardSize - 1)/6 * inc;
-        var dotInc = (boardSize - 1)/3 * inc;
-        for (var i = 0 ; i < (boardSize-1)/2; i++){
-          var x = Math.floor(i / ((boardSize-1)/6));
-          var y = i % ((boardSize-1)/6);
-          startHereDot(boardContext, translation+dotOff + x * dotInc, dotOff + y * dotInc, 'black');
-        }
-        
- }
-	function initialDraw(){
+function clearCanvas(context) {
+	context.clearRect(0, 0, overlay.width, overlay.height);
+}
 
-		initialWidth = window.innerWidth;
-		initialize();
-        flip = true;
-        boardArray = new Array(boardSize);
-        for (var i = 0; i < boardSize; i++) {
-          boardArray[i] = new Array(boardSize);
-        }
-        moves = new Array();
-       // printStack = new Array();
-       // printStep = -1;
+function redo(ctx) {
+	document.getElementById('redo').disabled = true;
+	if (curPiece < pieceStack.length - 1) {
 
-        
-        drawBoard();
-        
-        pushMemBoard(-1, -1, null);
-       // printPush(-1, -1, null);
-        refreshButtons();
+		curPiece++;
+		var x = pieceStack[curPiece].x;
+		var y = pieceStack[curPiece].y;
+		var c = pieceStack[curPiece].colour;
+
+		placePiece(x, y, c);
+
+		drawPieces(0, curPiece);
+	}
+	refreshButtons();
+}
+
+function drawPiece(ctx, x, y, colour, solid) {
+	ctx.beginPath();
+	ctx.strokeStyle = colour;
+
+	var r = inc * 0.4;
+	ctx.fillStyle = colour;
+	if (!solid) {
+		ctx.arc(x, y, r, 0, Math.PI * 2, true);
+		ctx.strokeStyle = colour;
+		ctx.stroke();
+	}
+	if (solid) {
+		ctx.arc(x, y, r + 2, 0, Math.PI * 2, true);
+		ctx.fill();
+	}
+	ctx.closePath();
+	overlayContext.clearRect(0, 0, overlay.width, overlay.height);
+}
+
+function drawOverlay(overlayContext, memx, memy, x, y, colour) {
+
+	overlayContext.clearRect(0, 0, overlay.width, overlay.height);
+	if (!inRange(memx) || !inRange(memy) || isDefined(boardArray[memx][memy])) return;
+	overlayContext.beginPath();
+	overlayContext.globalAlpha = 0.5;
+	var r = inc * 0.4;
+	overlayContext.fillStyle = colour;
+	overlayContext.arc(x, y, r + 2, 0, Math.PI * 2, true);
+	overlayContext.fill();
+	overlayContext.closePath();
+}
+
+function markRest(x0, y0, x1, y1, rowlen, len, type, begin, end) {
+	var dir;
+	var a;
+	var b;
+	if (type == 'down') {
+		if (x0 > x1) {
+			a = -1;
+			b = -1;
+		} else {
+			a = 1;
+			b = 1;
+		}
+	} else if (type == 'up') {
+		if (x0 > x1) {
+			a = -1;
+			b = 1;
+		} else {
+			a = 1;
+			b = -1;
+		}
+	} else if (type == 'hor') {
+		if (x0 > x1) {
+			a = -1;
+			b = 0;
+		} else {
+			a = 1;
+			b = 0;
+		}
+	} else {
+		if (y0 > y1) {
+			a = 0;
+			b = -1;
+		} else {
+			a = 0;
+			b = 1;
+		}
+	}
+	for (var i = 0; i < rowlen; i++) {
+		var c = boardArray[x1 + a * i][y1 + b * i][type];
+		// alert(c);
+		// alert(x1+a*i ) ;
+		// alert(y1+b*i);
+		c.length = len;
+		c.begin = begin;
+		c.end = end;
+	};
+}
+
+function isDefined(v) {
+	return !(typeof v === 'undefined')
+}
+
+function inRange(k) {
+	return k >= 0 && k < boardSize;
+}
+
+function checkAndJoin(x, y, colour, x1, y1, x2, y2) {
+	var type;
+	if (x1 < x2 && y1 < y2) type = 'down';
+	if (x1 < x2 && y1 > y2) type = 'up';
+	if (y1 == y2) type = 'hor';
+	if (x1 == x2) type = 'ver';
+	var cur = (inRange(x) && inRange(y)) ? boardArray[x][y] : undefined;
+	var fore = (inRange(x1) && inRange(y1)) ? boardArray[x1][y1] : undefined;
+	var aft = (inRange(x2) && inRange(y2)) ? boardArray[x2][y2] : undefined;
+	var newlen = 0;
+	if (isDefined(fore) && isDefined(aft)) {
+		if (fore[type].colour == colour && aft[type].colour == colour) {
+			newlen = fore[type].length + aft[type].length + 1;
+			cur[type].begin.x = fore[type].begin.x;
+			cur[type].end.x = aft[type].end.x;
+			cur[type].begin.y = fore[type].begin.y;
+			cur[type].end.y = aft[type].end.y;
+			cur[type].length = newlen;
+			markRest(x, y, x1, y1, fore[type].length, newlen, type, cur[type].begin, cur[type].end);
+			markRest(x, y, x2, y2, aft[type].length, newlen, type, cur[type].begin, cur[type].end);
+			return (newlen + " " + type);
+		}
+	}
+	if (isDefined(fore) && fore[type].colour == colour) {
+		newlen = fore[type].length + 1;
+		cur[type].begin.x = fore[type].begin.x;
+		cur[type].begin.y = fore[type].begin.y;
+		cur[type].length = newlen;
+		markRest(x, y, x1, y1, fore[type].length, newlen, type, cur[type].begin, cur[type].end);
+		return (newlen + " " + type);
+	}
+	if (isDefined(aft) && aft[type].colour == colour) {
+		newlen = aft[type].length + 1;
+		cur[type].end.x = aft[type].end.x;
+		cur[type].end.y = aft[type].end.y;
+		cur[type].length = newlen;
+		markRest(x, y, x2, y2, aft[type].length, newlen, type, cur[type].begin, cur[type].end);
+		return (newlen + " " + type);
+	}
+	//alert(type + (fore != undefined) + fore[type].colour + colour);
+	return "";
+}
+
+function checkWin(x, y, colour) {
+
+	if (!inRange(x) || !inRange(y)) return;
+	if (boardArray[x][y]["up"].length >= winCount || boardArray[x][y]["down"].length >= winCount || boardArray[x][y]["hor"].length >= winCount || boardArray[x][y]["ver"].length >= winCount) {
+		//alert(colour + " wins!");
+		circleWinner(pieceContext, x, y, colour);
+
+		done = true;
+		winner = colour;
+	} else if (curPiece == boardSize * boardSize) {
+		done = true;
+		alert("Draw!");
+	} else {
+		done = false;
+	}
+}
+
+function play(x, y, c) {
+	var drawX = x * inc + offset + translation;
+	var drawY = y * inc + offset;
+	if (drawY < offset || drawX > boardwidth + translation || drawY > boardwidth - offset || drawX < translation + offset) return false;
+	if (done) {
+		return false;
+	}
+
+	if (isDefined(boardArray[x][y])) return false;
+
+	placePiece(x, y, c);
+	pushBoard(x, y, c);
+	drawPieces(0, curPiece);
+	refreshButtons();
+	return true;
+}
+
+function mouseclickHandler(e) {
+	if (!detectClick || done) return;
+
+	var dsocleft = document.all ? iebody.scrollLeft : pageXOffset
+	var dsoctop = document.all ? iebody.scrollTop : pageYOffset
+	var y = Math.round((e.clientY * dpiMultiplier + dsoctop * dpiMultiplier - offset) / inc);
+	var x = Math.round((e.clientX * dpiMultiplier + dsocleft * dpiMultiplier - offset - translation) / inc);
+	var c = (pieceStack[curPiece].colour == black) ? white : black;
+
+	var res = play(x, y, c);
+
+	c = (c == black) ? white : black;
+
+	if (res) initPlay(c);
+}
+
+var curRand;
+
+function randomPlay(c) {
+	detectClick = false;
+	var k = Math.floor((Math.random() * (boardSize * boardSize - randCount))) + randCount;
+	curRand = k;
+	var tmp = randArray[k];
+	randArray[k] = randArray[randCount];
+	randArray[randCount] = tmp;
+
+	var randx = randArray[randCount][0];
+	var randy = randArray[randCount][1];
+
+	play(randx, randy, c);
+	randCount++;
+	detectClick = true;
+}
+window.onmousemove = mouseMoveHandler;
+
+function undoAll(ctx) {
+	while (curPiece > 0) {
+		undo(ctx);
 
 	}
-      function startHere() {
-      	window.addEventListener('resize', resizeCanvas, false);
-//      	initialDraw();
+}
 
-      	startGame("first");
-      }
-      function resizeCanvas(){
+function redoAll(ctx) {
+	while (curPiece < pieceStack.length - 1) {
+		redo(ctx);
+	}
+}
 
-        drawBoard();
+function mouseMoveHandler(event) {
+	event = event || window.event;
+	// event.clientX and event.clientY contain the mouse position
+	var dsocleft = document.all ? iebody.scrollLeft : pageXOffset
+	var dsoctop = document.all ? iebody.scrollTop : pageYOffset
 
-        paintPieces(0, curPiece);
+	var y = Math.round((event.clientY * dpiMultiplier + dsoctop * dpiMultiplier - offset) / inc);
+	var x = Math.round((event.clientX * dpiMultiplier + dsocleft * dpiMultiplier - offset - translation) / inc);
 
-        markLastMove(pieceContext);
-
-
-      }
-
-      var b_AI;
-      var w_AI;
-      var b_ho;
-      var w_hom;
-      var b_ran;
-      var w_ran;
-      var humanColour;
-      var detectClick;
-      function AIPlay(c){
-      	detectClick = false;
-      	randomPlay(c);
-      	detectClick = true;
-      }
-      function humanPlay(){
-      	
-      	detectClick = true;
-      }
-      function startGame(initial){
-      	var colour = first;
-      	var w = document.getElementById("pwhite");
-      	var b = document.getElementById("pblack");
-      	var wPick = w.options[w.selectedIndex].value;
-      	var bPick = b.options[b.selectedIndex].value;
-      	b_AI = bPick == "AI";
-      	w_AI = wPick == "AI";
-      	b_hom = bPick == "human";
-      	w_hom = wPick == "human";
-      	b_ran = bPick == "random";
-      	w_ran = wPick == "random";
-      	if (initial == "first") {
-      		initialDraw();
-      		initPlay(first);
-
-      	}
-     }
-
-     function initPlay(colour){
-     	while(!done){
-     		     	if (colour == black){
-	      		if (b_AI) AIPlay(black);
-	      		else if (b_hom) {
-	      			humanPlay();
-	      			return;
-	      		}
-	      		else if (b_ran) randomPlay(black);
-	      	}
-	      	else{
-	      		if (w_AI) AIPlay(white);
-	      		else if (w_hom) {
-	      			humanPlay();
-	      			return;
-	      		}
-	      		else if (w_ran) randomPlay(white);
-	      	}
-      	colour = (colour == black) ? white : black;
-     	}
-
-      	
-      	
-     }
-  
-      function circle(ctx, begin, end, dir, colour){
-        ctx.beginPath();
-        ctx.strokeStyle = 'red';
-        ctx.lineWidth   = inc*0.075;
-        var rad = inc*0.55;
-        var pythInc = Math.floor(rad/Math.sqrt(2));
-        if (dir == "ver"){
-          var top = (begin.y < end.y) ? begin : end;
-          var bottom = (begin.y < end.y) ? end: begin;
-          ctx.arc(offset + top.x * inc + translation, offset + inc*top.y, rad , 0, Math.PI, true);
-          ctx.moveTo(offset + inc*bottom.x + rad+ translation, offset + inc*bottom.y);
-          ctx.arc(offset + inc*bottom.x+ translation, offset + inc*bottom.y, rad , 0, Math.PI, false);
-          ctx.moveTo(offset + top.x * inc - rad+ translation, offset + inc*top.y);
-          ctx.lineTo(offset + inc*bottom.x - rad+ translation, offset + inc*bottom.y);
-          ctx.moveTo(offset + top.x * inc + rad+ translation, offset + inc*top.y);
-          ctx.lineTo(offset + inc*bottom.x + rad+ translation, offset + inc*bottom.y);
-        }
-        else if (dir == "hor"){
-          var left = (begin.x < end.x) ? begin : end;
-          var right = (begin.x < end.x) ? end: begin;
-          ctx.arc(offset + inc*left.x+ translation, offset + inc*left.y, rad, Math.PI/2, Math.PI*3/2, false);
-          ctx.moveTo(offset + inc*right.x+ translation, offset + inc*right.y + rad);
-          ctx.arc(offset + inc*right.x+ translation, offset + inc*right.y, rad, Math.PI/2, Math.PI*3/2, true);
-          ctx.moveTo(offset + inc*left.x+ translation, offset + inc*left.y - rad);
-          ctx.lineTo(offset + inc*right.x+ translation, offset + inc*right.y - rad);
-          ctx.moveTo(offset + inc*left.x+ translation, offset + inc*left.y + rad);
-          ctx.lineTo(offset + inc*right.x+ translation, offset + inc*right.y + rad);
-        }
-        else if (dir == "up"){
-          if (!isMac) rad--;
-          var left = (begin.x < end.x) ? begin : end;
-          var right = (begin.x < end.x) ? end: begin;
-          ctx.arc(offset + inc*left.x+ translation, offset + inc*left.y, rad, Math.PI/4, Math.PI*5/4,  false);
-          ctx.moveTo(offset + inc*right.x + pythInc+ translation, offset + inc*right.y + pythInc);
-          ctx.arc(offset + inc*right.x+ translation, offset + inc*right.y, rad, Math.PI/4, Math.PI*5/4, true);
-          ctx.moveTo(offset + inc*left.x - pythInc+ translation, offset + inc*left.y - pythInc);
-          ctx.lineTo(offset + inc*right.x - pythInc+ translation, offset + inc*right.y - pythInc);
-          ctx.moveTo(offset + inc*left.x + pythInc+ translation, offset + inc*left.y + pythInc);
-          ctx.lineTo(offset + inc*right.x + pythInc+ translation, offset + inc*right.y + pythInc);
-        }
-        else if (dir == "down"){
-          if (!isMac) rad--;
-          var left = (begin.x < end.x) ? begin : end;
-          var right = (begin.x < end.x) ? end: begin;
-          ctx.arc(offset + inc*left.x+ translation, offset + inc*left.y, rad, Math.PI*3/4, Math.PI*7/4,  false);
-          ctx.moveTo(offset + inc*right.x - pythInc+ translation, offset + inc*right.y + pythInc);
-          ctx.arc(offset + inc*right.x+ translation, offset + inc*right.y, rad, Math.PI*3/4, Math.PI*7/4, true);
-          ctx.moveTo(offset + inc*left.x - pythInc+ translation, offset + inc*left.y + pythInc);
-          ctx.lineTo(offset + inc*right.x - pythInc+ translation, offset + inc*right.y + pythInc);
-          ctx.moveTo(offset + inc*left.x + pythInc+ translation, offset + inc*left.y - pythInc);
-          ctx.lineTo(offset + inc*right.x + pythInc+ translation, offset + inc*right.y - pythInc);
-        }
-        ctx.stroke();
-        ctx.closePath();
-      }
-      function circleWinner(ctx, x, y, colour){
-        done = true;
-        //alert(colour+" won!");
-        ctx.strokeStyle = colour;
-        var dirs = ["up", "down", "hor", "ver"];
-        for (var i = dirs.length - 1; i >= 0; i--) {
-          curDir = boardArray[x][y][dirs[i]];
-          if (curDir.length >= 5){
-            circle(pieceContext, curDir.begin, curDir.end, dirs[i], colour);
-          }
-        }
-        ;
-      }
-      function startHereDot(boardContext, x, y, colour){
-        boardContext.beginPath();
-        boardContext.strokeStyle = colour;
-        boardContext.lineWidth   = inc*0.01;
-        boardContext.arc(x, y, inc*0.15 , 0, Math.PI * 2, true);
-        boardContext.stroke();
-        boardContext.fillStyle = colour;
-        boardContext.fill();
-        boardContext.closePath();
-      }
-      function markLastMove(ctx){
-        var a = (pieceStack[curPiece].colour == 'black')? 'white' : 'black';
-      
-        ctx.fillStyle = a;
-        ctx.font = "bold " + inc*0.5 +"px SimSun";
-        ctx.textAlign="center"; 
-        ctx.fillText("五", pieceStack[curPiece].x*inc + offset + translation, pieceStack[curPiece].y*inc + offset + inc*0.15);
-      
-        if (curPiece-1 <= 0) return;
-        var revert = pieceStack[curPiece-1].colour;
-        paintPiece(ctx, pieceStack[curPiece-1].x*inc + offset + translation, pieceStack[curPiece-1].y*inc + offset, revert, true);
-        ctx.fillStyle = revert;
-      }
-      function pushMemBoard(x,y, colour){
-      	
-      	var count = pieceStack.length;
-      	
-        if (count >= 0){
-        	
-        	if (curPiece < count - 1 && curPiece > -1){
-
-        	  for (var i = 0; i < count-curPiece - 1; i++) {
-        	  	
-        	  	pieceStack.pop();
-        	  }
-         	 
-    	  }
-
-          pieceStack.push({'x':x, 'y':y, 'colour': colour}
-                         );
-          curPiece++;
-          
-        }
-      }
-      // function printPush(x, y, colour) {
-      //   printStep++;
-      //   if (printStep < printStack.length) {
-      //   	var len = printStack.length;
-      //   	for (var i = 0; i < len-printStep; i++){
-      //   	 printStack.pop();
-      //   	}
-      //   }
-      //   printStack.push(document.getElementById('pieces').toDataURL());
-      // }
-      function placePiece(x, y, colour){
-        boardArray[x][y] = {};
-        
-        cur = boardArray[x][y];
-        
-        cur["up"] = {
-          'colour': colour, 'length': 1, 'begin' : {'x' : x, 'y' : y}
-          , 'end' : {'x' : x, 'y' : y}
-        }
-          ;
-        cur["down"] = {
-          'colour': colour, 'length': 1, 'begin' : {'x' : x, 'y' : y}
-          , 'end' : {'x' : x, 'y' : y}
-        }
-          ;
-        cur["hor"] = {
-          'colour': colour, 'length': 1, 'begin' : {'x' : x, 'y' : y}
-          , 'end' : {'x' : x, 'y' : y}
-        }
-          ;
-        cur["ver"] = {
-          'colour': colour, 'length': 1, 'begin' : {'x' : x, 'y' : y}
-          , 'end' : {'x' : x, 'y' : y}
-        }
-          ;
-        var res = "";
-
-        res = res + checkAndJoin(x, y, colour, x-1, y-1, x+1, y+1);
-        res = res + checkAndJoin(x, y, colour, x-1, y, x+1, y);
-        res = res + checkAndJoin(x, y, colour, x-1, y+1, x+1, y-1);
-        res = res + checkAndJoin(x, y, colour, x, y-1, x, y+1);
-        //if (res != "") alert(res);
-        
-        
-
-        
-      }
-      function unplace(x, y, colour){
-      	curPiece--;
-        // alert("unsetting"+ x + "," + y);
-        boardArray[x][y] = undefined;
-        //down
-        checkAndSever(x, y, colour, x-1, y-1, x+1, y+1);
-        //hor
-        checkAndSever(x, y, colour, x-1, y, x+1, y);
-        //up
-        checkAndSever(x, y, colour, x-1, y+1, x+1, y-1);
-        //ver
-        checkAndSever(x, y, colour, x, y-1, x, y+1);
-      }
-      function checkAndSever(x, y, colour, x1, y1, x2, y2){
-        var type;
-        if (x1 < x2 && y1 < y2) type = 'down';
-        if (x1 < x2 && y1 > y2) type = 'up';
-        if (y1 == y2) type = 'hor';
-        if (x1 == x2) type = 'ver';
-        var a;
-        var b;
-        if (type == 'down'){
-          a = 1;
-          b = 1;
-        }
-        else if (type == 'up'){
-          a = 1;
-          b = -1;
-        }
-        else if (type == 'hor'){
-          a = 1;
-          b = 0;
-        }
-        else{
-          a = 0;
-          b = 1;
-        }
-        var fore = (inRange(x2) && inRange(y2)) ? boardArray[x2][y2] : undefined;
-        var aft = (inRange(x1) && inRange(y1)) ? boardArray[x1][y1] : undefined;
-        var newlen = 0;
-        if (isDefined(fore)&& isDefined(aft)) {
-          if (fore[type].colour == colour && aft[type].colour == colour){
-            newforelen = Math.max(Math.abs(x-fore[type].end.x), Math.abs(y-fore[type].end.y));
-            newaftlen = Math.max(Math.abs(x-aft[type].begin.x), Math.abs(y-aft[type].begin.y));
-            markRest(x,y, x2, y2, newforelen, newforelen, type, {'x' : x+a, 'y' : y+b}
-                     , fore[type].end);
-            markRest(x,y, x1, y1, newaftlen, newaftlen, type, aft[type].begin, {'x' : x-a, 'y' : y-b}
-                    );
-            return;
-          }
-        }
-        if (isDefined(fore) && fore[type].colour == colour){
-          newforelen = Math.max(Math.abs(x-fore[type].end.x), Math.abs(y-fore[type].end.y));
-          markRest(x,y, x2, y2, newforelen, newforelen, type, {'x' : x+a, 'y' : y+b}
-                   , fore[type].end);
-          //   alert("forelen: "+newforelen);
-          return;
-        }
-        if (isDefined(aft) && aft[type].colour == colour){
-          newaftlen = Math.max(Math.abs(x-aft[type].begin.x), Math.abs(y-aft[type].begin.y));
-          markRest(x,y, x1, y1, newaftlen, newaftlen, type, aft[type].begin, {'x' : x-a, 'y' : y-b}
-                  );
-          // alert("aftlen: "+newaftlen);
-          return;
-        }
-      }
-
-      function paintPieces(start, end){
-       	clearCanvas(pieceContext);
-       	
-      	for (var i = start; i <= end; i++) {
-      		
-      		if (i < 0 || i > pieceStack.length - 1) continue;
-      		var piece = pieceStack[i];
-      		var x = piece.x;
-      		var y = piece.y;
-
-      		if (!inRange(x) || !inRange(y)) continue;
-      		
-      		var colour = piece.colour;
-      		paintPiece(pieceContext, x*inc + translation + offset, y*inc + offset, colour, true);
-      		
-      		
-      	};
-      	
-      	checkWin(x, y, colour);
+	var drawX = x * inc + offset + translation;
+	var drawY = y * inc + offset;
 
 
-      }
+	if (drawX > boardwidth + translation || drawY > boardwidth) return;
 
-      function undo(myctx) {
-      	done = false;
+	var colour;
 
-        document.getElementById('undo').disabled = true;
-        if (curPiece > 0) {
-        	
-          
-          //    alert(curPiece);
-          var x = pieceStack[curPiece].x;
-          var y = pieceStack[curPiece].y;
-          var c = pieceStack[curPiece].colour;
-          
-         // alert(curPiece + " " + printStep);
-          //   alert(c);
-		
-          unplace(x, y, c);
+	if (curPiece < 0) colour = first;
+	else {
+		colour = pieceStack[curPiece].colour;
+		colour = (colour == black) ? white : black;
+	}
 
-          done = false;
-          flip = !flip;
-          
-          paintPieces(0, curPiece);
-          
-          markLastMove(pieceContext);
+	drawOverlay(overlayContext, x, y, drawX, drawY, colour);
+}
+		</script>
+		<input id="undo" style="z-index:10;position:relative;" type="button" value="undo"
+		onclick="undo(pieceContext);" />
+		<input id="redo" style="z-index:10;position:relative;" type="button" value="redo"
+		onclick="redo(pieceContext);" />
+		<br>
+		<input id="undoAll" style="z-index:10;position:relative;" type="button"
+		value="undoAll" onclick="undoAll(pieceContext);" />
+		<input id="redoAll" style="z-index:10;position:relative;" type="button"
+		value="redoAll" onclick="redoAll(pieceContext);" />
+		<br>
+		<br>
+		<label style="z-index:10;position:relative;color: white;" for="pblack">
+			black
+		</label>
+		<select id="pblack" style="z-index:10;position:relative;">
+			<option value="human">
+				human
+			</option>
+			<option value="AI">
+				AI
+			</option>
+			<option value="random">
+				random
+			</option>
+		</select>
+		<br>
+		<label style="z-index:10;position:relative;color: white;" for="pwhite">
+			white
+		</label>
+		<select id="pwhite" style="z-index:10;position:relative;">
+			<option value="human">
+				human
+			</option>
+			<option value="AI">
+				AI
+			</option>
+			<option value="random">
+				random
+			</option>
+		</select>
+		<br>
+		<input id="newgame" style="z-index:10;position:relative;" type="button"
+		value="new game" onclick="startGame('first')" />
+	</body>
 
-
-        }
-        refreshButtons();
-
-      }
-
-      function clearCanvas(context){
-      	context.clearRect(0, 0, overlay.width, overlay.height);
-      }
-
-      function redo(ctx) {
-        document.getElementById('redo').disabled = true;
-        if (curPiece < pieceStack.length-1) {
-        	          
-          curPiece++;
-          var x = pieceStack[curPiece].x;
-          var y = pieceStack[curPiece].y;
-          var c = pieceStack[curPiece].colour;
-
-          placePiece(x, y, c);
-
-
-          flip = !flip;
-          paintPieces(0, curPiece);
-          markLastMove(pieceContext);
-        }
-        
-
-        refreshButtons();
-
-      }
-      function paintPiece(ctx, x, y, colour, solid){
-        ctx.beginPath();
-        ctx.strokeStyle = colour;
-        
-        var r = inc*0.4;
-        ctx.fillStyle = colour;
-        if (!solid) {
-          ctx.arc(x, y, r , 0, Math.PI * 2, true);
-          ctx.strokeStyle = colour;
-          ctx.stroke();
-        }
-        if (solid){
-          ctx.arc(x, y, r+2 , 0, Math.PI * 2, true);
-          ctx.fill();
-        }
-        ctx.closePath();
-        overlayContext.clearRect(0, 0, overlay.width, overlay.height);
-      }
-      function paintOverlay(overlayContext, ox, oy, x, y, colour){
-        overlayContext.clearRect(0, 0, overlay.width, overlay.height);
-        if ( !inRange(ox) || !inRange(oy) || isDefined(boardArray[ox][oy]) ) return;
-        overlayContext.beginPath();
-        overlayContext.globalAlpha = 0.5;
-        var r = inc*0.4;
-        overlayContext.fillStyle = colour;
-        overlayContext.arc(x, y, r+2 , 0, Math.PI * 2, true);
-        overlayContext.fill();
-        overlayContext.closePath();
-      }
-      function pushAndRefresh(x, y, colour){
-      //  printPush(x, y, colour);
-        refreshButtons();
-      }
-      var flip = true;
-      function markRest(x0, y0, x1, y1, rowlen,len, type, begin, end){
-        var dir;
-        var a;
-        var b;
-        if (type == 'down'){
-          if (x0 > x1){
-            a = -1;
-            b = -1;
-          }
-          else{
-            a = 1;
-            b = 1;
-          }
-        }
-        else if (type == 'up'){
-          if (x0 > x1){
-            a = -1;
-            b = 1;
-          }
-          else{
-            a = 1;
-            b = -1;
-          }
-        }
-        else if (type == 'hor'){
-          if (x0 > x1){
-            a = -1;
-            b = 0;
-          }
-          else{
-            a = 1;
-            b = 0;
-          }
-        }
-        else{
-          if (y0 > y1){
-            a = 0;
-            b = -1;
-          }
-          else{
-            a = 0;
-            b = 1;
-          }
-        }
-        for (var i = 0; i < rowlen; i++) {
-          var c = boardArray[x1+a*i][y1+b*i][type];
-          // alert(c);
-          // alert(x1+a*i ) ;
-          // alert(y1+b*i);
-          c.length = len;
-          c.begin = begin;
-          c.end = end;
-        }
-        ;
-      }
-      function isDefined(v){
-      	return !(typeof v === 'undefined')
-      }
-      function inRange(k){
-        return k >= 0 && k < boardSize;
-      }
-      function checkAndJoin(x, y, colour, x1, y1, x2, y2){
-        var type;
-        if (x1 < x2 && y1 < y2) type = 'down';
-        if (x1 < x2 && y1 > y2) type = 'up';
-        if (y1 == y2) type = 'hor';
-        if (x1 == x2) type = 'ver';
-        var cur = (inRange(x) && inRange(y)) ? boardArray[x][y] : undefined;
-        var fore = (inRange(x1) && inRange(y1)) ?  boardArray[x1][y1] : undefined;
-        var aft = (inRange(x2) && inRange(y2)) ? boardArray[x2][y2] : undefined;
-        var newlen = 0;
-        if (isDefined(fore) && isDefined(aft)) {
-          if (fore[type].colour == colour && aft[type].colour == colour){
-            newlen = fore[type].length + aft[type].length + 1;
-            cur[type].begin.x = fore[type].begin.x;
-            cur[type].end.x = aft[type].end.x;
-            cur[type].begin.y = fore[type].begin.y;
-            cur[type].end.y = aft[type].end.y;
-            cur[type].length = newlen;
-            markRest(x,y, x1, y1, fore[type].length, newlen, type, cur[type].begin, cur[type].end);
-            markRest(x,y, x2, y2, aft[type].length, newlen, type, cur[type].begin, cur[type].end);
-            return (newlen + " " + type);
-          }
-        }
-        if (isDefined(fore) && fore[type].colour == colour){
-          newlen = fore[type].length + 1;
-          cur[type].begin.x = fore[type].begin.x;
-          cur[type].begin.y = fore[type].begin.y;
-          cur[type].length = newlen;
-          markRest(x,y, x1, y1, fore[type].length, newlen, type, cur[type].begin, cur[type].end);
-          return (newlen + " " + type);
-        }
-        if (isDefined(aft) && aft[type].colour == colour){
-          newlen = aft[type].length + 1;
-          cur[type].end.x = aft[type].end.x;
-          cur[type].end.y = aft[type].end.y;
-          cur[type].length = newlen;
-          markRest(x,y, x2, y2, aft[type].length, newlen, type, cur[type].begin, cur[type].end);
-          return (newlen + " " + type);
-        }
-        //alert(type + (fore != undefined) + fore[type].colour + colour);
-        return "";
-      }
-      function checkWin(x, y, colour){
-      	
-      	if (!inRange(x) || !inRange(y)) return;
-        if (boardArray[x][y]["up"].length >= 5 ||
-            boardArray[x][y]["down"].length >= 5 || 
-            boardArray[x][y]["hor"].length >= 5 ||
-            boardArray[x][y]["ver"].length >= 5 ){
-          //alert(colour + " wins!");
-          circleWinner(pieceContext, x, y, colour);
-
-          done = true;
-          winner = colour;
-        }
-        else if (curPiece == boardSize*boardSize){
-          	done = true;
-          	alert("Draw!");
-        }
-        else{
-        	done = false;
-        }
-      }
-      function play(x, y, c){
-      	var paintX = x*inc + offset + translation;
-        var paintY = y*inc + offset;
-        if (paintY < offset || paintX > boardwidth + translation || paintY > boardwidth - offset || paintX < translation + offset) return false;
-        if (done) {
-          // done = false;
-          return false;
-        }
-
-        if (isDefined(boardArray[x][y])) return false;
-        //paintPiece(pieceContext, paintX, paintY, c, true, false);
-
-        placePiece(x, y, c);
-        pushMemBoard(x, y, c);
-        
-        
-        paintPieces(0, curPiece);
-
-        markLastMove(pieceContext);
-        pushAndRefresh(x, y, c);
-        return true;
-        
-        //alert("piececount is " + pieceCount);
-      }
-      function clickHandler(e) {
-     	if (!detectClick || done) return;
-
-        var dsocleft=document.all? iebody.scrollLeft : pageXOffset
-        var dsoctop=document.all? iebody.scrollTop : pageYOffset
-        var y = Math.round((e.clientY + dsoctop - offset)/inc);
-        var x =  Math.round((e.clientX + dsocleft - offset - translation)/inc);
-        var c = (pieceStack[curPiece].colour == black) ? white : black;
-        
-        var res = play(x, y, c);
-        
-        
-       	c = (c == black) ? white : black;
-       	
-       	if (res) initPlay(c);
-
-
-
-      }
-
-      var curRand;
-       function randomPlay(c){
-       	detectClick = false;
-      	var k = Math.floor((Math.random()*(boardSize*boardSize-randCount))) + randCount;
-      	curRand = k;
-        var tmp = randArray[k];
-        randArray[k] = randArray[randCount];
-        randArray[randCount] = tmp;
-
-        var randx = randArray[randCount][0];
-        var randy = randArray[randCount][1];
-
-        play(randx, randy, c);
-        randCount++;
-        detectClick = true;
-      }
-      window.onmousemove = handleMouseMove;
-      function undoAll(ctx){
-      	while(curPiece > 0){
-      		undo(ctx);
-
-      	}
-      }
-      function redoAll(ctx){
-      	while(curPiece < pieceStack.length-1){
-      		redo(ctx);
-      	}
-      }
-      function handleMouseMove(event) {
-        event = event || window.event;
-        // event.clientX and event.clientY contain the mouse position
-        var dsocleft=document.all? iebody.scrollLeft : pageXOffset
-        var dsoctop=document.all? iebody.scrollTop : pageYOffset
-        var y = Math.round((event.clientY + dsoctop - offset)/inc);
-        var x =  Math.round((event.clientX + dsocleft - offset - translation)/inc);
-        var paintX = x*inc + offset + translation;
-        var paintY = y*inc + offset;
-        if (paintX > boardwidth + translation || paintY > boardwidth) return;
-        var colour;
-        if (curPiece < 0) colour = first;
-        else{
-          colour = pieceStack[curPiece].colour;
-          colour = (colour == black) ? white : black;
-        }
-        // function paintPiece(x, y, colour, solid, extra){
-        paintOverlay(overlayContext, x, y, paintX, paintY, colour );
-      }
-    </script>
-    <input id="undo" style="z-index:10;position:relative;" type="button" value="undo" onclick="undo(pieceContext);" />
-    <input id="redo" style="z-index:10;position:relative;" type="button" value="redo" onclick="redo(pieceContext);" />
-    <br>
-    <input id="undoAll" style="z-index:10;position:relative;" type="button" value="undoAll" onclick="undoAll(pieceContext);" />
-    <input id="redoAll" style="z-index:10;position:relative;" type="button" value="redoAll" onclick="redoAll(pieceContext);" />
-    <br>
-   <!--  <input id="reset" style="z-index:10;position:relative;" type="button" value="reset" onclick="startHere();" />
-    <br>
-    <br>
-    <input id="random" style="z-index:10;position:relative;" type="button" value="random" onclick="invokeRandom();" /> -->
-    <br>
-    <label style = "color: white;" for="pblack">
-    black
-</label>
-<select id="pblack" style="z-index:10;position:relative;">
-    <option value = "human">human</option>
-    <option value = "AI">AI</option>
-    <option value = "random">random</option>
-</select>
-	<br>
-	    <label style = "color: white;"for="pwhite">
-    white
-</label>
-<select id="pwhite" style="z-index:10;position:relative;">
-    <option value = "human">human</option>
-    <option value = "AI">AI</option>
-    <option value = "random">random</option>
-</select>
-<br>
-<input id="newgame" style="z-index:10;position:relative;" type="button" value="new game" onclick="startGame('first')" />
-    </body>
 </html>

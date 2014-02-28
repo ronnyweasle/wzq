@@ -45,7 +45,6 @@ var black = 'black';
 var white = 'white';
 var first = black;
 var moves = new Array();
-var printStack = new Array();
 var pieceStack = new Array();
 var printStep = -1;
 var pieceCount = 0;
@@ -217,10 +216,211 @@ var w_ran;
 var humanColour;
 var detectClick;
 
+function updateMoves(moves){
+	var done = false;
+	var newMoves = new Array();
+	
+	for (var i = 0; i < moves.size; i++){
+		if (!isDefined(boardArray[moves[i].x][moves[i].y])) {
+			var v = getValue(moves[i].x, moves[i].y, moves[i].colour);
+			moves[i].value = v;
+			Array.push(moves[i]);
+		}
+	}
+	return newMoves;
+	
+}
+
+function removeElement(array, index){
+	array.splice(index, 1);
+}
+
+function addMove(moves, x, y, colour, value){
+	var move = {};
+	move = {'x' : x, 'y' : y, 'colour' : colour, 'value' : value};
+	for (var i = 0; i < moves.length; i++){
+		if (moves[i].x == x && moves[i].y == y) {
+			moves[i] = move;
+			return;
+		};
+	}
+
+	moves.push(move);
+
+
+}
+
+function getOpenEnds(x, y, dir){
+
+	var len = boardArray[x][y][dir].length;
+
+	var begin = boardArray[x][y][dir].begin;
+	var end = boardArray[x][y][dir].end;
+	//begin to end:
+
+	var vectorX = (end.x - begin.x);
+	if (vectorX != 0) vectorX /= Math.abs(vectorX);
+
+	var vectorY = (end.y - begin.y);
+	if (vectorY != 0) vectorY /= Math.abs(vectorY);
+
+	var endPlusOneX = end.x + vectorX;
+	var endPlusOneY = end.y + vectorY;
+
+	var beginMinusOneX = begin.x - vectorX;
+	var beginMinusOneY = begin.y - vectorY;
+
+	var ends = 0;
+	
+	if (inRange(endPlusOneX) && inRange(endPlusOneY) && 
+		!isDefined(boardArray[endPlusOneX][endPlusOneY])) ends++;
+
+	if (inRange(beginMinusOneX) && inRange(beginMinusOneY) && 
+		!isDefined(boardArray[beginMinusOneX][beginMinusOneY]))ends++;
+
+	
+	return ends;
+
+}
+
+function getValue(x, y, colour){
+	placePiece(x, y, colour);
+	var value;
+
+	var up = boardArray[x][y]["up"].length;
+	var down = boardArray[x][y]["down"].length;
+	var ver = boardArray[x][y]["ver"].length;
+	var hor = boardArray[x][y]["hor"].length;
+
+	if (up == winCount || down == winCount || ver == winCount || hor == winCount){
+		unplace(x, y, colour);
+		return 9000.1;
+	} 
+
+	var upEnds = getOpenEnds(x, y, "up");
+	var downEnds = getOpenEnds(x, y, "down");
+	var verEnds = getOpenEnds(x, y, "ver");
+	var horEnds = getOpenEnds(x, y, "hor");
+
+	up = (up != winCount && upEnds == 0) ? 0 : up;
+	down = (down != winCount && downEnds == 0) ? 0 : down;
+	ver = (ver != winCount && verEnds == 0) ? 0 : ver;
+	hor = (hor != winCount && horEnds == 0) ? 0 : hor;
+
+	up = up - (0.2 - upEnds*0.1);
+	down = down - (0.2 - downEnds*0.1);
+	ver = ver -(0.2 - verEnds*0.1);
+	hor = hor -(0.2 - horEnds*0.1);
+
+	var paths = [up, down, ver, hor];
+	paths.sort(function(a,b){return a-b});
+
+	//alert(paths[3]);
+	if (paths[3] == 1) value = 1;
+	else if (paths[2] == 1) value = paths[3];
+	else if (paths[2] == paths[3]) value = paths[3] + 0.95;
+	else if (paths[2] < paths[3]) value = paths[3] + 0.05;
+	else value = paths[3];
+
+	unplace(x, y, colour);
+	return value;
+}
+
+function addPlay(moves, board, piece, dx, dy){
+	var x = piece.x + dx;
+	var y = piece.y + dy;
+
+	if (!inRange(x) || !inRange(y)) return;
+	if (isDefined(board[x][y])) return;
+
+	var value = getValue(x, y, piece.colour);
+	//alert(value);
+	addMove(moves, x, y, piece.colour, value);
+
+}
+
+function getBestMove(moves){
+	var maxVal = 0;
+	if (moves.length == 0){
+		alert("lol");
+	}
+	for (var i = 0; i < moves.length; i++){
+		if (moves[i].value > maxVal){
+			maxVal = moves[i].value;
+		}
+	}
+
+	var equivalent = new Array();
+	for (var i = 0; i < moves.length; i++){
+		if (moves[i].value == maxVal)
+			equivalent.push(moves[i]);
+	}
+
+	//alert(maxVal);
+
+	var index = Math.floor((Math.random()*equivalent.length));
+	
+	return equivalent[index];
+
+}
+
+function getNextMoves(curBestMoves, board, piece){
+	addPlay(curBestMoves, board, piece, 1, 0);
+	addPlay(curBestMoves, board, piece, 1, 1);
+	addPlay(curBestMoves, board, piece, 0, 1);
+	addPlay(curBestMoves, board, piece, -1, 1);
+	addPlay(curBestMoves, board, piece, -1, 0);
+	addPlay(curBestMoves, board, piece, -1, -1);
+	addPlay(curBestMoves, board, piece, 0, -1);
+	addPlay(curBestMoves, board, piece, 1, -1);
+}
+var blackMoves = new Array();
+var whiteMoves = new Array();
+
 function AIPlay(c) {
+	var theirMoves = (c == black) ? whiteMoves : blackMoves;
+	var myMoves = (c == white) ? blackMoves : whiteMoves;
+
 	detectClick = false;
-	randomPlay(c);
+
+	myMoves = updateMoves(myMoves);
+	theirMoves = updateMoves(theirMoves);
+
+	if (curPiece == 0){
+		play(Math.floor(boardSize /2), Math.floor(boardSize /2), c);
+		return;
+	}
+	// this is the opponent
+	//alert(pieceStack[curPiece].colour);
+	
+	for (var i = 1; i <= curPiece; i++){
+		if (pieceStack[i].colour != c)
+			getNextMoves(theirMoves, boardArray, pieceStack[i]);
+	}
+	
+	theirBestMove = getBestMove(theirMoves);
+	//alert(theirBestMove.value);
+
+
+	if (curPiece == 1){
+		play(theirBestMove.x, theirBestMove.y, c);
+		return;
+	}
+	
+	for (var i = 1; i <= curPiece; i++){
+		if (pieceStack[i].colour == c)
+			getNextMoves(myMoves, boardArray, pieceStack[i]);
+	}
+	
+
+	myBestMove = getBestMove(myMoves);
+
+	var toPlay = (myBestMove.value >= theirBestMove.value) ? myBestMove : theirBestMove;
+	play(toPlay.x, toPlay.y, c);
+
 	detectClick = true;
+
+	//todo: look at empty if out of moves
 }
 
 function humanPlay() {
@@ -635,6 +835,7 @@ function markRest(x0, y0, x1, y1, rowlen, len, type, begin, end) {
 			b = 1;
 		}
 	}
+
 	for (var i = 0; i < rowlen; i++) {
 		var c = boardArray[x1 + a * i][y1 + b * i][type];
 		// alert(c);
@@ -722,7 +923,11 @@ function play(x, y, c) {
 		return false;
 	}
 
-	if (isDefined(boardArray[x][y])) return false;
+	if (isDefined(boardArray[x][y])) {
+		//alert("collision at " + x + " " + y);
+
+		return false;
+	}
 
 	placePiece(x, y, c);
 	pushBoard(x, y, c);

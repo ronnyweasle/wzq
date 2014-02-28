@@ -1,5 +1,5 @@
 <html>
-	<head>
+  <head>
 		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 		<title>
 		</title>
@@ -283,7 +283,9 @@ function getOpenEnds(x, y, dir){
 
 }
 
-function getValue(x, y, colour){
+var winVal = 9000;
+
+function getValue(x, y, colour, level, orig){
 	placePiece(x, y, colour);
 	var value;
 
@@ -292,48 +294,97 @@ function getValue(x, y, colour){
 	var ver = boardArray[x][y]["ver"].length;
 	var hor = boardArray[x][y]["hor"].length;
 
-	if (up == winCount || down == winCount || ver == winCount || hor == winCount){
-		unplace(x, y, colour);
-		return 9000.1;
+	if (up >= winCount || down >= winCount || ver >= winCount || hor >= winCount){
+
+		var dirs = [up, down, ver, hor];
+		var max =  Math.max.apply(Math, dirs);
+		value = winVal + max;
+		if (level != orig) value = 0;
 	} 
+	else{
+		var upEnds = getOpenEnds(x, y, "up");
+		var downEnds = getOpenEnds(x, y, "down");
+		var verEnds = getOpenEnds(x, y, "ver");
+		var horEnds = getOpenEnds(x, y, "hor");
 
-	var upEnds = getOpenEnds(x, y, "up");
-	var downEnds = getOpenEnds(x, y, "down");
-	var verEnds = getOpenEnds(x, y, "ver");
-	var horEnds = getOpenEnds(x, y, "hor");
+		up = (up != winCount && upEnds == 0) ? 0 : up;
+		down = (down != winCount && downEnds == 0) ? 0 : down;
+		ver = (ver != winCount && verEnds == 0) ? 0 : ver;
+		hor = (hor != winCount && horEnds == 0) ? 0 : hor;
 
-	up = (up != winCount && upEnds == 0) ? 0 : up;
-	down = (down != winCount && downEnds == 0) ? 0 : down;
-	ver = (ver != winCount && verEnds == 0) ? 0 : ver;
-	hor = (hor != winCount && horEnds == 0) ? 0 : hor;
+		var k = 1.1;
+		up = up - (k - upEnds*k*0.5);
+		down = down - (k - downEnds*k*0.5);
+		ver = ver -(k - verEnds*k*0.5);
+		hor = hor -(k - horEnds*k*0.5);
 
-	up = up - (0.2 - upEnds*0.1);
-	down = down - (0.2 - downEnds*0.1);
-	ver = ver -(0.2 - verEnds*0.1);
-	hor = hor -(0.2 - horEnds*0.1);
+		var paths = [up, down, ver, hor];
+		paths.sort(function(a,b){return a-b});
 
-	var paths = [up, down, ver, hor];
-	paths.sort(function(a,b){return a-b});
-
-	//alert(paths[3]);
-	if (paths[3] == 1) value = 1;
-	else if (paths[2] == 1) value = paths[3];
-	else if (paths[2] == paths[3]) value = paths[3] + 0.95;
-	else if (paths[2] < paths[3]) value = paths[3] + 0.05;
-	else value = paths[3];
+		//alert(paths[3]);
+		if (paths[3] == 1) value = 1;
+		else if (paths[2] == 1) value = paths[3];
+		else if (paths[2] == paths[3]) value = paths[3] + 0.95;
+		else if (paths[2] < paths[3]) value = paths[3] + 0.05;
+		else value = paths[3];
+	}
 
 	unplace(x, y, colour);
-	return value;
+	return value*level;
 }
+
+function isPlayable(x, y){
+	if (!inRange(x) || !inRange(y)) return false;
+
+	if (isDefined(boardArray[x][y])) return false;
+	return true;
+}
+
+function DeepValue(x, y, c, level, orig){
+	
+	if (level == 1){
+		return getValue(x, y, c, level, orig);
+	}
+	else{
+		var thisVal = getValue(x, y, c, level, orig);
+		placePiece(x, y, c);
+		pushBoard(x, y, c);
+		var vals = new Array();
+		for (var i = 1; i <= curPiece; i++){
+			if (pieceStack[i].colour == c){
+				var curX = pieceStack[i].x;
+				var curY = pieceStack[i].y;
+				for (var k = 0; k < deltas.length; k++){
+					var x2 = curX + deltas[k][0];
+					var y2 = curY + deltas[k][1];
+					if (isPlayable(x2, y2)){
+							var curVal = DeepValue(x2, y2, c, level - 1);
+							vals.push(curVal);
+						
+					}
+				}
+				
+			}
+		}
+		unplace(x, y, c);
+		pieceStack.pop();
+		curPiece--;
+		//alert(Math.max.apply(Math, vals));
+		//alert(Math.min.apply(Math, vals))
+		// immediacy
+		return thisVal + Math.max.apply(Math, vals) + 10*level;
+	}
+}
+
+var deltas = [[1, 0], [0, 1], [1, 1], [-1, -1], [-1, 0], [0, -1], [1, -1], [-1, 1]];
 
 function addPlay(moves, board, piece, dx, dy){
 	var x = piece.x + dx;
 	var y = piece.y + dy;
 
-	if (!inRange(x) || !inRange(y)) return;
-	if (isDefined(board[x][y])) return;
+	if (!isPlayable(x, y)) return;
 
-	var value = getValue(x, y, piece.colour);
+	var value = DeepValue(x, y, piece.colour, 3, 3);
 	//alert(value);
 	addMove(moves, x, y, piece.colour, value);
 
@@ -383,8 +434,8 @@ function AIPlay(c) {
 
 	detectClick = false;
 
-	myMoves = updateMoves(myMoves);
-	theirMoves = updateMoves(theirMoves);
+	//myMoves = updateMoves(myMoves);
+	//theirMoves = updateMoves(theirMoves);
 
 	if (curPiece == 0){
 		play(Math.floor(boardSize /2), Math.floor(boardSize /2), c);
@@ -392,28 +443,34 @@ function AIPlay(c) {
 	}
 	// this is the opponent
 	//alert(pieceStack[curPiece].colour);
-	
+	theirMoves = new Array();
 	for (var i = 1; i <= curPiece; i++){
 		if (pieceStack[i].colour != c)
 			getNextMoves(theirMoves, boardArray, pieceStack[i]);
 	}
 	
-	theirBestMove = getBestMove(theirMoves);
-	//alert(theirBestMove.value);
+	var theirBestMove = getBestMove(theirMoves);
+	
 
 
 	if (curPiece == 1){
 		play(theirBestMove.x, theirBestMove.y, c);
 		return;
 	}
+
+	myMoves = new Array();
 	
 	for (var i = 1; i <= curPiece; i++){
 		if (pieceStack[i].colour == c)
 			getNextMoves(myMoves, boardArray, pieceStack[i]);
 	}
-	
 
-	myBestMove = getBestMove(myMoves);
+	var myBestMove = getBestMove(myMoves);
+	
+	//alert(theirBestMove.value + " at " + "(" + theirBestMove.x + ", " + theirBestMove.y + ")");
+
+	//alert(myBestMove.value + " at " + "(" + myBestMove.x + ", " + myBestMove.y + ")");
+	
 
 	var toPlay = (myBestMove.value >= theirBestMove.value) ? myBestMove : theirBestMove;
 	play(toPlay.x, toPlay.y, c);
